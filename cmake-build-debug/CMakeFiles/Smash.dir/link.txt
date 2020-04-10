@@ -1,0 +1,1 @@
+C:/cygwin64/bin/g++.exe -g  -Wl,--enable-auto-import CMakeFiles/Smash.dir/smash.cpp.o CMakeFiles/Smash.dir/signals.cpp.o CMakeFiles/Smash.dir/Commands.cpp.o  -o Smash.exe -Wl,--out-implib,libSmash.dll.a -Wl,--major-image-version,0,--minor-image-version,0 

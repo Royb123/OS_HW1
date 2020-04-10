@@ -9,12 +9,14 @@
 
 class Command {
 // TODO: Add your data members
+    const char* cmd_line;
  public:
-  Command(const char* cmd_line);
+  Command(const char* cmd_line):cmd_line(cmd_line){};
   virtual ~Command();
   virtual void execute() = 0;
   //virtual void prepare();
   //virtual void cleanup();
+  const char* get_cmd_line(){return cmd_line;};
   // TODO: Add your extra methods if needed
 };
 
@@ -49,8 +51,15 @@ class RedirectionCommand : public Command {
   //void cleanup() override;
 };
 
+class ChangePromptCommand : public BuiltInCommand {
+public:
+    ChangePromptCommand(const char* cmd_line);
+    virtual ~ChangePromptCommand() {}
+    void execute() override;
+};
 class ChangeDirCommand : public BuiltInCommand {
-// TODO: Add your data members public:
+// TODO: Add your data members
+  public:
   ChangeDirCommand(const char* cmd_line, char** plastPwd);
   virtual ~ChangeDirCommand() {}
   void execute() override;
@@ -165,6 +174,7 @@ class CopyCommand : public BuiltInCommand {
 
 class SmallShell {
  private:
+    std::string prompt_name;
   // TODO: Add your data members
   SmallShell();
  public:
@@ -179,6 +189,8 @@ class SmallShell {
   }
   ~SmallShell();
   void executeCommand(const char* cmd_line);
+  void ChangePrompt(const std::string new_prompt);
+  std::string GetPromptName(){return prompt_name;};
   // TODO: add extra methods as needed
 };
 

@@ -85,13 +85,21 @@ void _removeBackgroundSign(char* cmd_line) {
 // TODO: Add your implementation for classes in Commands.h 
 
 SmallShell::SmallShell() {
+    prompt_name="smash>";
 // TODO: add your implementation
 }
 
 SmallShell::~SmallShell() {
 // TODO: add your implementation
 }
-
+void SmallShell::ChangePrompt(const string new_prompt){
+    if(new_prompt==" "){
+        prompt_name="smash>";
+    }
+    else{
+        prompt_name=new_prompt;
+    }
+}
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
