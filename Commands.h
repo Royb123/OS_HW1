@@ -9,21 +9,27 @@
 
 class Command {
 // TODO: Add your data members
+    bool isDone;
     const char* cmd_line;
+    pid_t pid;
  public:
-  Command(const char* cmd_line):cmd_line(cmd_line){};
-  virtual ~Command();
+  Command(const char* cmd_line);
+  virtual ~Command()=default;
   virtual void execute() = 0;
   //virtual void prepare();
   //virtual void cleanup();
-  const char* get_cmd_line(){return cmd_line;};
+  const char* GetCmdLine(){return cmd_line;};
+  const pid_t GetPID(){return pid;}
+  void ChangeIsDone(){isDone=true;}
+  const bool IsCmdDone(){return isDone;}
+
   // TODO: Add your extra methods if needed
 };
 
 class BuiltInCommand : public Command {
  public:
   BuiltInCommand(const char* cmd_line);
-  virtual ~BuiltInCommand() {}
+  virtual ~BuiltInCommand()=default;
 };
 
 class ExternalCommand : public Command {
@@ -31,6 +37,7 @@ class ExternalCommand : public Command {
   ExternalCommand(const char* cmd_line);
   virtual ~ExternalCommand() {}
   void execute() override;
+
 };
 
 class PipeCommand : public Command {
@@ -53,10 +60,13 @@ class RedirectionCommand : public Command {
 
 class ChangePromptCommand : public BuiltInCommand {
 public:
-    ChangePromptCommand(const char* cmd_line);
-    virtual ~ChangePromptCommand() {}
-    void execute() override;
+    ChangePromptCommand();
+    virtual ~ChangePromptCommand()
+    void execute() override{
+        return;
+    };
 };
+
 class ChangeDirCommand : public BuiltInCommand {
 // TODO: Add your data members
   public:
@@ -74,9 +84,11 @@ class GetCurrDirCommand : public BuiltInCommand {
 
 class ShowPidCommand : public BuiltInCommand {
  public:
-  ShowPidCommand(const char* cmd_line);
-  virtual ~ShowPidCommand() {}
-  void execute() override;
+  ShowPidCommand();
+  virtual ~ShowPidCommand()=default;
+  void execute() override {
+      std::cout << "smash pid is " << GetPID() << "\n";
+  };
 };
 
 class JobsList;
@@ -86,7 +98,7 @@ class QuitCommand : public BuiltInCommand {
   virtual ~QuitCommand() {}
   void execute() override;
 };
-
+/*
 class CommandsHistory {
  protected:
   class CommandHistoryEntry {
@@ -107,13 +119,32 @@ class HistoryCommand : public BuiltInCommand {
   virtual ~HistoryCommand() {}
   void execute() override;
 };
+*/
 
 class JobsList {
  public:
   class JobEntry {
+      const int jobid;
+      bool stopped;
+      Command* command;
+      time_t start_time;
+  public:
+      JobEntry(int ID, bool stopped, Command* cmd): jobid(ID),stopped(stopped){
+          command=cmd;
+          start_time=time(nullptr); //TODO: handle errors
+      }
+      ~JobEntry()=default;
+      int GetJobID(){ return jobid;}
+      time_t GetStartTime(){return start_time;}
+      Command* GetCommand(){return command;}
+      bool isStopped(){return stopped;}
+
    // TODO: Add your data members
   };
- // TODO: Add your data members
+  int max_job_id;
+  std::vector<JobEntry*> lst;
+  //JobEntry* last_job;
+  //JobEntry* last_stopped_job;
  public:
   JobsList();
   ~JobsList();
@@ -175,6 +206,7 @@ class CopyCommand : public BuiltInCommand {
 class SmallShell {
  private:
     std::string prompt_name;
+    pid_t pid;
   // TODO: Add your data members
   SmallShell();
  public:

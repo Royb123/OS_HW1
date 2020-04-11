@@ -84,27 +84,180 @@ void _removeBackgroundSign(char* cmd_line) {
 
 // TODO: Add your implementation for classes in Commands.h 
 
-SmallShell::SmallShell() {
-    prompt_name="smash>";
+SmallShell::SmallShell():prompt_name("smash>") {
 // TODO: add your implementation
+
 }
 
 SmallShell::~SmallShell() {
 // TODO: add your implementation
 }
 void SmallShell::ChangePrompt(const string new_prompt){
-    if(new_prompt==" "){
+    if(new_prompt==""){
         prompt_name="smash>";
     }
     else{
         prompt_name=new_prompt;
     }
 }
+
+Command::Command(const char* cmd_line):cmd_line(cmd_line){
+    pid=getpid();
+    isDone=false;
+}
+void GetCurrDirCommand::execute(){
+    char * buf= nullptr;
+    size_t size=0;
+    getcwd(buf,size);
+    std::cout << buf << "\n";
+    free(buf);
+};
+
+
+
+JobsList::JobsList():max_job_id(1) {
+    vector<JobEntry*> lst=vector<JobEntry*>();
+}
+JobsList::~JobsList() {
+    lst.clear();
+}
+void JobsList::addJob(Command* cmd, bool isStopped){
+    max_job_id+=1;
+    JobEntry* job= new JobEntry(max_job_id,isStopped,cmd);
+    lst.push_back(job);
+
+}
+JobsList::JobEntry* JobsList::getJobById(int jobId){
+    if(lst.empty()){
+        return nullptr;
+    }
+    for (vector<JobEntry*>::iterator iter=lst.begin(); iter!=lst.end(); iter++){
+        if((*iter)->GetJobID()==jobId){
+            return *iter;
+        }
+    }
+    return nullptr;
+}
+
+void JobsList::removeFinishedJobs(){
+    vector<JobEntry*>::iterator iter;
+    for (iter=lst.begin(); iter!=lst.end(); iter++){
+        if((*iter)->GetCommand()->IsCmdDone()){
+            lst.erase(iter);
+        }
+    }
+    JobEntry* last_job=lst.back();
+    max_job_id=last_job->GetJobID(); //the last job's ID is the maximum ID
+}
+void JobsList::printJobsList(){
+    removeFinishedJobs();
+    pid_t pid;
+    time_t start_time,now;
+    double duration;
+    const char* cmd;
+    int jobID;
+    for (vector<JobEntry*>::iterator iter=lst.begin(); iter!=lst.end(); iter++){
+        cmd=(*iter)->GetCommand()->GetCmdLine();
+        pid=(*iter)->GetCommand()->GetPID();
+        start_time=(*iter)->GetStartTime();
+        jobID=(*iter)->GetJobID();
+        now=time(nullptr);
+        duration=difftime(now,start_time);
+        std::cout << "[" << jobID << "] " << cmd << " : " << pid << " ";
+        std::cout<<duration;
+        if((*iter)->isStopped()){
+            std::cout << " (stopped)";
+        }
+        std::cout<< "\n";
+    }
+}
+JobsList::JobEntry* JobsList::getLastJob(int* lastJobId){//TODO: is that what they want with the ptr?
+    //TODO: check for finished jobs?
+    if(lst.empty()){
+        return nullptr;
+    }
+    JobEntry* last_job=lst.back();
+    *lastJobId=last_job->GetJobID();
+    return last_job;
+}
+JobsList::JobEntry* JobsList::getLastStoppedJob(int *jobId){
+    //TODO: check for finished jobs?
+    if(lst.empty()){
+        return nullptr;
+    }
+    for (vector<JobEntry*>::reverse_iterator iter=lst.rbegin(); iter!=lst.rend(); iter++){
+        if((*iter)->isStopped()){
+            *jobId=(*iter)->GetJobID();
+            return (*iter);
+        }
+    }
+    return nullptr;
+}
+void JobsList::removeJobById(int jobId){
+    int removed_job_ID=0;
+    for (vector<JobEntry*>::iterator iter=lst.begin(); iter!=lst.end(); iter++){
+        if((*iter)->GetJobID()==jobId){
+            removed_job_ID=(*iter)->GetJobID();
+            lst.erase(iter);
+            if(removed_job_ID==max_job_id){
+                max_job_id=lst.back()->GetJobID();
+            }
+            break;
+        }
+    }
+}
+
+string ReturnWord(const string& cmd_s,int num){
+    unsigned long ind;
+    string token=cmd_s;
+    string requested_word;
+    string space = " ";
+    for (int i=0;i<num;i++){
+        ind=token.find_first_not_of(space);
+        if (ind==string::npos || token.empty()){
+            requested_word="";
+            return requested_word;
+        }
+        token = token.substr(ind, string::npos);
+        if(i==num-1){
+            break;
+        }
+        ind=token.find_first_of(space);
+        token=token.substr(ind,string::npos);
+    }
+    requested_word = token.substr(0,token.find_first_of(space));
+    return requested_word;
+
+}
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line) {
-	// For example:
+    string cmd_s = string(cmd_line);
+    string first_word=ReturnWord(cmd_s,1);
+    if(first_word=="chprompt"){
+        ChangePromptCommand* chprompt=new ChangePromptCommand();
+        string new_prompt=ReturnWord(cmd_s,2);
+        ChangePrompt(new_prompt);
+        return chprompt;
+    }
+    else if(first_word=="showpid"){
+        ShowPidCommand* show_cmd=new ShowPidCommand(pid);
+        return show_cmd;
+    }
+    else if(first_word=="pwd"){}
+    else if(first_word=="cd"){}
+    else if(first_word=="jobs"){}
+    else if(first_word=="kill"){}
+    else if(first_word=="fg"){}
+    else if(first_word=="bg"){}
+    else if(first_word=="quit"){}
+    else{
+        //TODO: create External command
+    }
+
+
+    // For example:
 /*
   string cmd_s = string(cmd_line);
   if (cmd_s.find("pwd") == 0) {
@@ -120,9 +273,11 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 }
 
 void SmallShell::executeCommand(const char *cmd_line) {
-  // TODO: Add your implementation here
-  // for example:
-  // Command* cmd = CreateCommand(cmd_line);
-  // cmd->execute();
+  Command* cmd = CreateCommand(cmd_line);
+  if(!cmd){
+      return;
+  }
+  cmd->execute();
+  delete cmd;
   // Please note that you must fork smash process for some commands (e.g., external commands....)
 }
