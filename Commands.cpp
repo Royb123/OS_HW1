@@ -11,6 +11,7 @@ using namespace std;
 
 const std::string WHITESPACE = " \n\r\t\f\v";
 
+
 #if 0
 #define FUNC_ENTRY()  \
   cerr << __PRETTY_FUNCTION__ << " --> " << endl;
@@ -21,8 +22,7 @@ const std::string WHITESPACE = " \n\r\t\f\v";
 #define FUNC_ENTRY()
 #define FUNC_EXIT()
 #endif
-
-#define DEBUG_PRINT cerr << "DEBUG: "
+  #define DEBUG_PRINT cerr << "DEBUG: "
 
 #define EXEC(path, arg) \
   execvp((path), (arg));
@@ -42,6 +42,29 @@ string _rtrim(const std::string& s)
 string _trim(const std::string& s)
 {
   return _rtrim(_ltrim(s));
+}
+
+string ReturnWord(const string& cmd_s,int num){
+    unsigned long ind;
+    string token=cmd_s;
+    string requested_word;
+    string space = " ";
+    for (int i=0;i<num;i++){
+        ind=token.find_first_not_of(space);
+        if (ind==string::npos || token.empty()){
+            requested_word="";
+            return requested_word;
+        }
+        token = token.substr(ind, string::npos);
+        if(i==num-1){
+            break;
+        }
+        ind=token.find_first_of(space);
+        token=token.substr(ind,string::npos);
+    }
+    requested_word = token.substr(0,token.find_first_of(space));
+    return requested_word;
+
 }
 
 int _parseCommandLine(const char* cmd_line, char** args) {
@@ -82,8 +105,41 @@ void _removeBackgroundSign(char* cmd_line) {
   cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
 }
 
-// TODO: Add your implementation for classes in Commands.h 
+// TODO: Add your implementation for classes in Commands.h
+Command::Command():cmd_line(""){
+    pid=getpid();
 
+};
+Command::Command(const char* cmd_line):cmd_line(cmd_line){
+    pid=getpid();
+}
+
+BuiltInCommand::BuiltInCommand():Command(){}
+
+BuiltInCommand::BuiltInCommand(const char* cmd_line):Command(cmd_line){}
+
+ShowPidCommand::ShowPidCommand():BuiltInCommand(){}
+QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs):BuiltInCommand(cmd_line){
+    jobs_list=jobs;
+    string word=ReturnWord(cmd_line,2);
+    if(word=="kill"){
+        isKillSpecified=true;
+    }
+    else{
+        isKillSpecified=false;
+    }
+}
+void QuitCommand::execute(){
+    if(isKillSpecified){
+        jobs_list->removeFinishedJobs();
+        jobs_list->PrintForQuit();
+        jobs_list->killAllJobs();
+    }
+    else{
+        jobs_list->ClearJobsFromList();
+    }
+
+}
 SmallShell::SmallShell():prompt_name("smash>") {
 // TODO: add your implementation
 
@@ -101,10 +157,7 @@ void SmallShell::ChangePrompt(const string new_prompt){
     }
 }
 
-Command::Command(const char* cmd_line):cmd_line(cmd_line){
-    pid=getpid();
-    isDone=false;
-}
+
 void GetCurrDirCommand::execute(){
     char * buf= nullptr;
     size_t size=0;
@@ -122,6 +175,7 @@ JobsList::~JobsList() {
     lst.clear();
 }
 void JobsList::addJob(Command* cmd, bool isStopped){
+    removeFinishedJobs();
     max_job_id+=1;
     JobEntry* job= new JobEntry(max_job_id,isStopped,cmd);
     lst.push_back(job);
@@ -140,9 +194,16 @@ JobsList::JobEntry* JobsList::getJobById(int jobId){
 }
 
 void JobsList::removeFinishedJobs(){
+    int status;
+    pid_t pid;
     vector<JobEntry*>::iterator iter;
     for (iter=lst.begin(); iter!=lst.end(); iter++){
-        if((*iter)->GetCommand()->IsCmdDone()){
+        if((*iter)->isStopped()){
+            continue;
+        }
+        pid=(*iter)->GetCommand()->GetPID();
+        waitpid(pid,&status,WNOHANG);
+        if(status==pid){
             lst.erase(iter);
         }
     }
@@ -170,6 +231,32 @@ void JobsList::printJobsList(){
         }
         std::cout<< "\n";
     }
+}
+
+void JobsList::ClearJobsFromList(){
+    lst.clear();
+}
+void JobsList::killAllJobs(){
+    int res;
+    pid_t pid;//TODO: use to check return value of kill?
+    //TODO: remove finished jobs?
+    for (vector<JobEntry*>::iterator iter=lst.begin(); iter!=lst.end(); iter++){
+        pid=(*iter)->GetCommand()->GetPID();
+        kill(pid,SIGKILL);
+
+    }
+    lst.clear();
+}
+void JobsList::PrintForQuit(){
+    pid_t pid;
+    unsigned long size=lst.size();
+    std::cout << "smash: sending SIGKILL signal to " << size <<" jobs:\n";
+    for (vector<JobEntry*>::iterator iter=lst.begin(); iter!=lst.end(); iter++){
+        pid=(*iter)->GetCommand()->GetPID();
+        std::cout << pid << ": " << (*iter)->GetCommand() << "\n";
+    }
+    std::cout <<"Linux-shell:" << "\n";
+
 }
 JobsList::JobEntry* JobsList::getLastJob(int* lastJobId){//TODO: is that what they want with the ptr?
     //TODO: check for finished jobs?
@@ -207,42 +294,22 @@ void JobsList::removeJobById(int jobId){
     }
 }
 
-string ReturnWord(const string& cmd_s,int num){
-    unsigned long ind;
-    string token=cmd_s;
-    string requested_word;
-    string space = " ";
-    for (int i=0;i<num;i++){
-        ind=token.find_first_not_of(space);
-        if (ind==string::npos || token.empty()){
-            requested_word="";
-            return requested_word;
-        }
-        token = token.substr(ind, string::npos);
-        if(i==num-1){
-            break;
-        }
-        ind=token.find_first_of(space);
-        token=token.substr(ind,string::npos);
-    }
-    requested_word = token.substr(0,token.find_first_of(space));
-    return requested_word;
-
-}
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line) {
-    string cmd_s = string(cmd_line);
-    string first_word=ReturnWord(cmd_s,1);
+    int num_of_args;
+    char* arg_list[COMMAND_MAX_ARGS+1];
+    num_of_args=_parseCommandLine(cmd_line,arg_list);
+    string first_word=string(arg_list[0]);
     if(first_word=="chprompt"){
         ChangePromptCommand* chprompt=new ChangePromptCommand();
-        string new_prompt=ReturnWord(cmd_s,2);
+        string new_prompt=string(arg_list[1]);
         ChangePrompt(new_prompt);
         return chprompt;
     }
     else if(first_word=="showpid"){
-        ShowPidCommand* show_cmd=new ShowPidCommand(pid);
+        ShowPidCommand* show_cmd=new ShowPidCommand();
         return show_cmd;
     }
     else if(first_word=="pwd"){}

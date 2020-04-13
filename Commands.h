@@ -9,26 +9,25 @@
 
 class Command {
 // TODO: Add your data members
-    bool isDone;
     const char* cmd_line;
     pid_t pid;
  public:
-  Command(const char* cmd_line);
+    Command();
+  explicit Command(const char* cmd_line);
   virtual ~Command()=default;
   virtual void execute() = 0;
   //virtual void prepare();
   //virtual void cleanup();
   const char* GetCmdLine(){return cmd_line;};
   const pid_t GetPID(){return pid;}
-  void ChangeIsDone(){isDone=true;}
-  const bool IsCmdDone(){return isDone;}
 
   // TODO: Add your extra methods if needed
 };
 
 class BuiltInCommand : public Command {
  public:
-  BuiltInCommand(const char* cmd_line);
+    BuiltInCommand();
+  explicit BuiltInCommand(const char* cmd_line);
   virtual ~BuiltInCommand()=default;
 };
 
@@ -61,7 +60,7 @@ class RedirectionCommand : public Command {
 class ChangePromptCommand : public BuiltInCommand {
 public:
     ChangePromptCommand();
-    virtual ~ChangePromptCommand()
+    virtual ~ChangePromptCommand();
     void execute() override{
         return;
     };
@@ -77,7 +76,7 @@ class ChangeDirCommand : public BuiltInCommand {
 
 class GetCurrDirCommand : public BuiltInCommand {
  public:
-  GetCurrDirCommand(const char* cmd_line);
+  GetCurrDirCommand(const char* cmd_line):BuiltInCommand(cmd_line){};
   virtual ~GetCurrDirCommand() {}
   void execute() override;
 };
@@ -92,10 +91,12 @@ class ShowPidCommand : public BuiltInCommand {
 };
 
 class JobsList;
+
 class QuitCommand : public BuiltInCommand {
-// TODO: Add your data members public:
+    JobsList* jobs_list;
+    bool isKillSpecified;
   QuitCommand(const char* cmd_line, JobsList* jobs);
-  virtual ~QuitCommand() {}
+  virtual ~QuitCommand()= default;
   void execute() override;
 };
 /*
@@ -143,8 +144,7 @@ class JobsList {
   };
   int max_job_id;
   std::vector<JobEntry*> lst;
-  //JobEntry* last_job;
-  //JobEntry* last_stopped_job;
+
  public:
   JobsList();
   ~JobsList();
@@ -152,6 +152,8 @@ class JobsList {
   void printJobsList();
   void killAllJobs();
   void removeFinishedJobs();
+  void ClearJobsFromList();
+  void PrintForQuit();
   JobEntry * getJobById(int jobId);
   void removeJobById(int jobId);
   JobEntry * getLastJob(int* lastJobId);
@@ -221,7 +223,7 @@ class SmallShell {
   }
   ~SmallShell();
   void executeCommand(const char* cmd_line);
-  void ChangePrompt(const std::string new_prompt);
+  void ChangePrompt(std::string new_prompt);
   std::string GetPromptName(){return prompt_name;};
   // TODO: add extra methods as needed
 };
