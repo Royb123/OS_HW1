@@ -43,7 +43,7 @@ string _trim(const std::string& s)
 {
   return _rtrim(_ltrim(s));
 }
-
+/*
 string ReturnWord(const string& cmd_s,int num){
     unsigned long ind;
     string token=cmd_s;
@@ -66,7 +66,7 @@ string ReturnWord(const string& cmd_s,int num){
     return requested_word;
 
 }
-
+*/
 int _parseCommandLine(const char* cmd_line, char** args) {
   FUNC_ENTRY()
   int i = 0;
@@ -117,16 +117,25 @@ Command::Command(const char* cmd_line):cmd_line(cmd_line){
 BuiltInCommand::BuiltInCommand():Command(){}
 
 BuiltInCommand::BuiltInCommand(const char* cmd_line):Command(cmd_line){}
+void BuiltInCommand::execute() {}
 
 ShowPidCommand::ShowPidCommand():BuiltInCommand(){}
+
 QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs):BuiltInCommand(cmd_line){
     jobs_list=jobs;
-    string word=ReturnWord(cmd_line,2);
-    if(word=="kill"){
-        isKillSpecified=true;
+    char * args[COMMAND_MAX_ARGS+1];
+    int num_of_args=_parseCommandLine(cmd_line,args);
+    if(num_of_args==1){
+        isKillSpecified=false;
     }
     else{
-        isKillSpecified=false;
+        string second_word=string(args[1]);
+        if(second_word=="kill"){
+            isKillSpecified=true;
+        }
+        else{
+            isKillSpecified=false;
+        }
     }
 }
 void QuitCommand::execute(){
@@ -138,15 +147,79 @@ void QuitCommand::execute(){
     else{
         jobs_list->ClearJobsFromList();
     }
+    exit(0); //TODO:maybe we shouldn't put exit here
+}
+
+JobsCommand::JobsCommand(const char* cmd_line, JobsList* jobs):BuiltInCommand(cmd_line){
+    job_list=jobs;
 
 }
+void JobsCommand::execute() {
+    job_list->printJobsList();
+}
+ForegroundCommand::ForegroundCommand(const char* cmd_line, JobsList* jobs):BuiltInCommand(cmd_line){
+    job_list=jobs;
+}
+void ForegroundCommand::execute() {
+    int num_of_args;
+    int jobID;
+    pid_t jobPID;
+    char* args[COMMAND_MAX_ARGS+1];
+    num_of_args=_parseCommandLine(GetCmdLine(),args);
+    switch(num_of_args) {
+        case 1: {
+            unsigned long list_size = job_list->ListSize();
+            if (list_size == 0) {
+                std::cout << "smash error: fg: jobs list is empty\n";
+                break;
+            } else {
+                //TODO: add function to remove last job so no error occurs!
+                JobsList::JobEntry* last_job=job_list->getLastJob(&jobID);
+                job_list->removeJobById(jobID);
+                jobPID=last_job->GetCommand()->GetPID();
+                std::cout<< last_job->GetCommand()->GetCmdLine() <<" : "<< jobPID<< "\n";
+                kill(jobPID, SIGCONT);
+                perror("smash error: kill failed\n");
+                waitpid(jobPID, nullptr, 0);
+                perror("smash error: waitpid failed\n");
+                break;
+            }
+        }
+        case 2: {
+            try {
+                jobID = stoi(args[1]);
+            }
+            catch (out_of_range &e) {
+                std::cout << "smash error: fg: invalid arguments\n";
+                return;
+            }
+            JobsList::JobEntry* job=job_list->getJobById(jobID);
+            if (!job){
+                std::cout<<"smash error: fg: job-id " << jobID << " does not exist\n";
+                return;
+            }
+            job_list->removeJobById(jobID);
+            jobPID=job->GetCommand()->GetPID();
+            std::cout<< job->GetCommand()->GetCmdLine() <<" : "<< jobPID <<"\n";
+            kill(jobPID, SIGCONT);
+            perror("smash error: kill failed\n");
+            waitpid(jobPID, nullptr, 0);
+            perror("smash error: waitpid failed\n");
+            break;
+        }
+        default:
+            std::cout <<"smash error: fg: invalid arguments\n";
+            break;
+
+    }
+}
 SmallShell::SmallShell():prompt_name("smash>") {
-// TODO: add your implementation
+    job_list=new JobsList();
 
 }
 
 SmallShell::~SmallShell() {
-// TODO: add your implementation
+    delete job_list;
 }
 void SmallShell::ChangePrompt(const string new_prompt){
     if(new_prompt==""){
@@ -162,11 +235,10 @@ void GetCurrDirCommand::execute(){
     char * buf= nullptr;
     size_t size=0;
     getcwd(buf,size);
+    perror("smash error: getcwd failed\n");
     std::cout << buf << "\n";
     free(buf);
-};
-
-
+}
 
 JobsList::JobsList():max_job_id(1) {
     vector<JobEntry*> lst=vector<JobEntry*>();
@@ -203,6 +275,7 @@ void JobsList::removeFinishedJobs(){
         }
         pid=(*iter)->GetCommand()->GetPID();
         waitpid(pid,&status,WNOHANG);
+        perror("smash error: waitpid failed\n");
         if(status==pid){
             lst.erase(iter);
         }
@@ -223,6 +296,8 @@ void JobsList::printJobsList(){
         start_time=(*iter)->GetStartTime();
         jobID=(*iter)->GetJobID();
         now=time(nullptr);
+        perror("smash error: time failed\n");
+
         duration=difftime(now,start_time);
         std::cout << "[" << jobID << "] " << cmd << " : " << pid << " ";
         std::cout<<duration;
@@ -242,7 +317,8 @@ void JobsList::killAllJobs(){
     //TODO: remove finished jobs?
     for (vector<JobEntry*>::iterator iter=lst.begin(); iter!=lst.end(); iter++){
         pid=(*iter)->GetCommand()->GetPID();
-        kill(pid,SIGKILL);
+        kill(pid,SIGKILL); //TODO: seperate the kill command from this func?
+        perror("smash error: kill failed\n");
 
     }
     lst.clear();
@@ -258,13 +334,13 @@ void JobsList::PrintForQuit(){
     std::cout <<"Linux-shell:" << "\n";
 
 }
-JobsList::JobEntry* JobsList::getLastJob(int* lastJobId){//TODO: is that what they want with the ptr?
+JobsList::JobEntry* JobsList::getLastJob(int* lastJobID){//TODO: is that what they want with the ptr?
     //TODO: check for finished jobs?
     if(lst.empty()){
         return nullptr;
     }
     JobEntry* last_job=lst.back();
-    *lastJobId=last_job->GetJobID();
+    *lastJobID=last_job->GetJobID();
     return last_job;
 }
 JobsList::JobEntry* JobsList::getLastStoppedJob(int *jobId){
@@ -293,7 +369,9 @@ void JobsList::removeJobById(int jobId){
         }
     }
 }
-
+unsigned long JobsList::ListSize() {
+    return lst.size();
+}
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
@@ -312,13 +390,25 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
         ShowPidCommand* show_cmd=new ShowPidCommand();
         return show_cmd;
     }
-    else if(first_word=="pwd"){}
+    else if(first_word=="pwd"){
+        GetCurrDirCommand* pwd=new GetCurrDirCommand(cmd_line);
+        return pwd;
+    }
     else if(first_word=="cd"){}
-    else if(first_word=="jobs"){}
+    else if(first_word=="jobs"){
+        JobsCommand* jobs=new JobsCommand(cmd_line,job_list);
+        return jobs;
+    }
     else if(first_word=="kill"){}
-    else if(first_word=="fg"){}
+    else if(first_word=="fg"){
+        ForegroundCommand* fg=new ForegroundCommand(cmd_line,job_list);
+        return fg;
+    }
     else if(first_word=="bg"){}
-    else if(first_word=="quit"){}
+    else if(first_word=="quit"){
+        QuitCommand* quit=new QuitCommand(cmd_line,job_list);
+        return quit;
+    }
     else{
         //TODO: create External command
     }

@@ -29,6 +29,7 @@ class BuiltInCommand : public Command {
     BuiltInCommand();
   explicit BuiltInCommand(const char* cmd_line);
   virtual ~BuiltInCommand()=default;
+  void execute() override;
 };
 
 class ExternalCommand : public Command {
@@ -59,11 +60,9 @@ class RedirectionCommand : public Command {
 
 class ChangePromptCommand : public BuiltInCommand {
 public:
-    ChangePromptCommand();
-    virtual ~ChangePromptCommand();
-    void execute() override{
-        return;
-    };
+    ChangePromptCommand():BuiltInCommand(){};
+    virtual ~ChangePromptCommand()=default;
+    void execute() override{};
 };
 
 class ChangeDirCommand : public BuiltInCommand {
@@ -76,7 +75,7 @@ class ChangeDirCommand : public BuiltInCommand {
 
 class GetCurrDirCommand : public BuiltInCommand {
  public:
-  GetCurrDirCommand(const char* cmd_line):BuiltInCommand(cmd_line){};
+  explicit GetCurrDirCommand(const char* cmd_line):BuiltInCommand(cmd_line){};
   virtual ~GetCurrDirCommand() {}
   void execute() override;
 };
@@ -95,6 +94,7 @@ class JobsList;
 class QuitCommand : public BuiltInCommand {
     JobsList* jobs_list;
     bool isKillSpecified;
+public:
   QuitCommand(const char* cmd_line, JobsList* jobs);
   virtual ~QuitCommand()= default;
   void execute() override;
@@ -156,16 +156,17 @@ class JobsList {
   void PrintForQuit();
   JobEntry * getJobById(int jobId);
   void removeJobById(int jobId);
-  JobEntry * getLastJob(int* lastJobId);
+  JobEntry * getLastJob(int* lastJobID);
   JobEntry *getLastStoppedJob(int *jobId);
+  unsigned long ListSize();
   // TODO: Add extra methods or modify exisitng ones as needed
 };
 
 class JobsCommand : public BuiltInCommand {
- // TODO: Add your data members
+ JobsList* job_list;
  public:
   JobsCommand(const char* cmd_line, JobsList* jobs);
-  virtual ~JobsCommand() {}
+  virtual ~JobsCommand()=default;
   void execute() override;
 };
 
@@ -179,6 +180,7 @@ class KillCommand : public BuiltInCommand {
 
 class ForegroundCommand : public BuiltInCommand {
  // TODO: Add your data members
+ JobsList* job_list;
  public:
   ForegroundCommand(const char* cmd_line, JobsList* jobs);
   virtual ~ForegroundCommand() {}
@@ -207,6 +209,7 @@ class CopyCommand : public BuiltInCommand {
 
 class SmallShell {
  private:
+    JobsList* job_list;
     std::string prompt_name;
     pid_t pid;
   // TODO: Add your data members
