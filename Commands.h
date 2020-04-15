@@ -6,6 +6,13 @@
 #define COMMAND_ARGS_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
 #define HISTORY_MAX_RECORDS (50)
+#define OK (0)
+#define ERROR (-1)
+#define OVERRIDE (0)
+#define APPEND (1)
+#define PIPE (2)
+#define PIPEERR (3)
+#define REGULAR (-1)
 
 class Command {
 // TODO: Add your data members
@@ -22,6 +29,56 @@ class Command {
   const pid_t GetPID(){return pid;}
 
   // TODO: Add your extra methods if needed
+};
+
+class JobsList {
+public:
+    class JobEntry {
+        const int jobid;
+        bool stopped;
+        Command* command;
+        time_t start_time;
+    public:
+        JobEntry(int ID, bool stopped, Command* cmd) : jobid(ID), stopped(stopped) {
+            command = cmd;
+            start_time = time(nullptr); //TODO: handle errors
+        }
+        ~JobEntry() = default;
+        int GetJobID() { return jobid; }
+        time_t GetStartTime() { return start_time; }
+        Command* GetCommand() { return command; }
+        bool isStopped() { return stopped; }
+        void ChangeStoppedStatus(){
+            if(stopped){
+                stopped=false;
+            }
+            else{
+                stopped=true;
+            }
+        }
+
+        // TODO: Add your data members
+    };
+private:
+    int max_job_id;
+    std::vector<JobEntry*> lst;
+
+public:
+    JobsList();
+    ~JobsList();
+    void addJob(Command* cmd, bool isStopped = false);
+    void printJobsList();
+    void killAllJobs();
+    void removeFinishedJobs();
+    void ClearJobsFromList();
+    void PrintForQuit();
+    JobEntry * getJobById(int jobId);
+    void removeJobById(int jobId);
+    JobEntry * getLastJob(int* lastJobID);
+    JobEntry *getLastStoppedJob(int *jobId);
+    unsigned long ListSize();
+    int ExecuteSignal(int jobID,int signal);
+    // TODO: Add extra methods or modify exisitng ones as needed
 };
 
 class BuiltInCommand : public Command {
@@ -49,10 +106,11 @@ class PipeCommand : public Command {
 };
 
 class RedirectionCommand : public Command {
- // TODO: Add your data members
+    int type;
+    Command* cmd;
  public:
-  explicit RedirectionCommand(const char* cmd_line);
-  virtual ~RedirectionCommand() {}
+  explicit RedirectionCommand(const char* cmd_line,int type,Command* cmd);
+  virtual ~RedirectionCommand();
   void execute() override;
   //void prepare() override;
   //void cleanup() override;
@@ -62,7 +120,7 @@ class ChangePromptCommand : public BuiltInCommand {
 public:
     ChangePromptCommand():BuiltInCommand(){};
     virtual ~ChangePromptCommand()=default;
-    void execute() override{};
+    void execute() override;
 };
 
 class ShowPidCommand : public BuiltInCommand {
@@ -87,48 +145,7 @@ class ChangeDirCommand : public BuiltInCommand {
   void execute() override;
 };
 
-class JobsList;
 
-class JobsList {
-public:
-	class JobEntry {
-		const int jobid;
-		bool stopped;
-		Command* command;
-		time_t start_time;
-	public:
-		JobEntry(int ID, bool stopped, Command* cmd) : jobid(ID), stopped(stopped) {
-			command = cmd;
-			start_time = time(nullptr); //TODO: handle errors
-		}
-		~JobEntry() = default;
-		int GetJobID() { return jobid; }
-		time_t GetStartTime() { return start_time; }
-		Command* GetCommand() { return command; }
-		bool isStopped() { return stopped; }
-		void Execute_Signal(); //TODO: WRITE THIS
-
-		// TODO: Add your data members
-	};
-	int max_job_id;
-	std::vector<JobEntry*> lst;
-
-public:
-	JobsList();
-	~JobsList();
-	void addJob(Command* cmd, bool isStopped = false);
-	void printJobsList();
-	void killAllJobs();
-	void removeFinishedJobs();
-	void ClearJobsFromList();
-	void PrintForQuit();
-	JobEntry * getJobById(int jobId);
-	void removeJobById(int jobId);
-	JobEntry * getLastJob(int* lastJobID);
-	JobEntry *getLastStoppedJob(int *jobId);
-	unsigned long ListSize();
-	// TODO: Add extra methods or modify exisitng ones as needed
-};
 
 class JobsCommand : public BuiltInCommand {
 	JobsList* job_list;
@@ -222,11 +239,7 @@ class SmallShell {
     std::string prompt_name;
 	char* old_pwd[HISTORY_MAX_RECORDS+1];
 	//int old_pwd_used;
-<<<<<<< Updated upstream
     pid_t pid;
-=======
-	int pid;
->>>>>>> Stashed changes
   // TODO: Add your data members
   SmallShell();
  public:
