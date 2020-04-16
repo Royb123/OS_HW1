@@ -162,6 +162,7 @@ void RedirectionCommand::execute() {
         }
     }
     ofstream out_file;
+    //TODO: make sure the file exist!
     if(type==APPEND){
         out_file=ofstream(file_name,ofstream::out|ofstream::app);
     }
@@ -177,16 +178,18 @@ void RedirectionCommand::execute() {
 }
 
 /*-------------------------BuiltInCommand ChangePrompt--------------------*/
-void SmallShell::ChangePrompt(const string new_prompt) {
-	if (new_prompt == "") {
-		prompt_name = "smash>";
-	}
-	else {
-		prompt_name = new_prompt;
-	}
-}
+ChangePromptCommand::ChangePromptCommand(std::string* prompt,string new_prompt):
+BuiltInCommand(),prompt_name(prompt),new_prompt(new_prompt){};
 
-void ChangePromptCommand::execute() { return; };
+void ChangePromptCommand::execute() {
+    if (new_prompt == "") {
+        *prompt_name = "smash>";
+    }
+    else {
+        *prompt_name = new_prompt;
+    }
+
+}
 
 
 /*-------------------------BuiltInCommand ShowPid-------------------------*/
@@ -242,7 +245,7 @@ void ChangeDirCommand::execute() {
 			while (i <= COMMAND_MAX_ARGS && plastPwd[i] != "") {
 				i++;
 			}
-			plastPwd[i] = arg_list[1]
+			plastPwd[i] = arg_list[1];
 		}
 		else {
 			cout << "smash error: > " << this->GetCmdLine() << endl;
@@ -626,9 +629,14 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     string first_word=string(arg_list[0]);
 
     if(first_word=="chprompt"){
-        cmd=new ChangePromptCommand();
-        //string new_prompt=string(arg_list[1]);
-        //ChangePrompt(new_prompt);
+        string new_prompt;
+        if(num_of_args==1){
+            new_prompt="";
+        }
+        else{
+            new_prompt=string(arg_list[1]);
+        }
+        cmd=new ChangePromptCommand(&prompt_name,new_prompt);
     }
     else if(first_word=="showpid"){
         cmd=new ShowPidCommand();

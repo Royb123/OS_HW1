@@ -117,8 +117,10 @@ class RedirectionCommand : public Command {
 };
 
 class ChangePromptCommand : public BuiltInCommand {
+    std::string* prompt_name;
+    std::string new_prompt;
 public:
-    ChangePromptCommand():BuiltInCommand(){};
+    ChangePromptCommand(std::string* prompt,std::string new_prompt);
     virtual ~ChangePromptCommand()=default;
     void execute() override;
 };
