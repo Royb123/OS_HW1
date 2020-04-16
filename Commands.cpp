@@ -47,6 +47,18 @@ string _trim(const std::string& s)
 {
 	return _rtrim(_ltrim(s));
 }
+//return true if a char* is numeric
+bool is_numeric(char* input) {
+	int i = 0;
+	bool return_value = true;
+	while (input[i] != '\n') {
+		if (!(input[i] >= '0' && input[i] <= '9')) {
+			return_value = false;
+		}
+		i++;
+	}
+	return return_value;
+}
 
 int _parseCommandLine(const char* cmd_line, char** args) {
 	FUNC_ENTRY()
@@ -210,54 +222,59 @@ void GetCurrDirCommand::execute() {
 
 
 /*-------------------------BuiltInCommand ChangeDirCommand-----------------*/
-ChangeDirCommand::ChangeDirCommand(const char* cmd_line, char** plastPwd) :BuiltInCommand(cmd_line) {
-	this->plastPwd = plastPwd;
+ChangeDirCommand::ChangeDirCommand(const char* cmd_line, char** old_pwd, char** curr_pwd) :BuiltInCommand(cmd_line) {
+
+	this->old_pwd = old_pwd;
+	this->curr_pwd = curr_pwd;
 }
 
-//TODO: Check if "smash error" is actually "Prompt-Name error"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 void ChangeDirCommand::execute() {
 	int num_of_args;
 	char* arg_list[COMMAND_MAX_ARGS + 1];
 	num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
 
+	//if there are more than 2 arguments
 	if (arg_list[2] != NULL) {
-		cout << "smash error: cd: too many arguments\n";
+		std::cout << "smash error: cd: too many arguments\n";
 	}
 
-	if (string(arg_list[1]) == "-") {
-		if (string(this->plastPwd[0]) == "") {
-			cout << "smash error: cd: OLDPWD not set\n";
+	//in case you want to go back
+	if (arg_list[1] == "-") {
+		//in case there is no available history
+		if (*old_pwd == nullptr) {
+			std::cout << "smash error: cd: OLDPWD not set\n";
 		}
+		//in case there is available history
 		else {
-			int i = 0;
-			while (i <= COMMAND_MAX_ARGS && !(string(plastPwd[i]).empty())) {
-				i++;
+			int state = chdir(*old_pwd);
+			if (state == 0) { //succeeded
+				char* temp = *curr_pwd;
+				*curr_pwd = *old_pwd;
+				*old_pwd = temp;
 			}
-			int state = chdir(this->plastPwd[i]);
-			state == 0 ? plastPwd[i] = "" : cout << "smash error: > " << this->GetCmdLine() << endl;
+			else { //failed
+				std::cout << "smash error: > " << this->GetCmdLine() << endl;
+			}
 		}
 	}
 
-	else {
+	else {//norml change direction
 		int state = chdir(arg_list[1]);
-		if (state == 0) {
-			int i = 0;
-			while (i <= COMMAND_MAX_ARGS && plastPwd[i] != "") {
-				i++;
-			}
-			plastPwd[i] = arg_list[1];
+		if (state == 0) { //succeeded
+			*old_pwd = *curr_pwd;
+			*curr_pwd = arg_list[1];
 		}
-		else {
-			cout << "smash error: > " << this->GetCmdLine() << endl;
+		else { //failed
+			std::cout << "smash error: > " << this->GetCmdLine() << endl;
 		}
 
 	}
 
 
-
-	for (int i = 0; i < COMMAND_MAX_ARGS; i++) {
+	//freeing the arg_list 
+	for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
 		if (arg_list[i] == NULL) break;
-		free(arg_list[i]);
+		std::free(arg_list[i]);
 	}
 }
 
@@ -283,31 +300,31 @@ void KillCommand::execute() {
 	int res;
 	char* arg_list[COMMAND_MAX_ARGS + 1];
 	num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
-	if (num_of_args != 3 || arg_list[1][0] != '-') {
-		cout << "kill: invalid arguments\n";
-		for (int i = 0; i < COMMAND_MAX_ARGS; i++) {
+	if (num_of_args != 3 || arg_list[1][0] != '-' || !is_numeric(arg_list[2]) || !is_numeric((arg_list[1] + 1 * sizeof(char)))) { //checking input
+		std::cout << "smash error: kill: invalid arguments\n";
+		for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
 			if (arg_list[i] == NULL) break;
-			free(arg_list[i]);
+			std::free(arg_list[i]);
 		}
 		return;
 	}
-	JobsList::JobEntry* temp = this->job_list->getJobById();
+	//checking if jobID is valid
+	JobsList::JobEntry* temp = this->job_list->getJobById(int(arg_list[2]));
 	if (temp == nullptr) {
-		cout << " kill: job-id" << arg_list[2] << "does not exist\n";
+		std::cout << "smash error: kill: job-id" << arg_list[2] << "does not exist\n";
 	}
-	else{
-		res=job_list->ExecuteSignal(arg_list[1]);
-		if(res==OK){
-			cout << "signal number " << arg_list[1] << "was sent to pid " << arg_list[2] << endl;
+	else {
+		//everything is OK, execute signal
+		res = job_list->ExecuteSignal(arg_list[1]);
+		if (res == OK) {
+			std::cout << "signal number " << arg_list[1] << "was sent to pid " << arg_list[2] << endl;
 
 		}
 	}
 
-
-
-	for (int i = 0; i < COMMAND_MAX_ARGS; i++) {
+	for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
 		if (arg_list[i] == NULL) break;
-		free(arg_list[i]);
+		std::free(arg_list[i]);
 	}
 }
 
@@ -385,8 +402,84 @@ void ForegroundCommand::execute() {
 
 
 /*-------------------------BuiltInCommand BackgroundCommand------------------*/
-void BackgroundCommand::execute() {
+BackgroundCommand::BackgroundCommand(const char* cmd_line, JobsList* jobs) :BuiltInCommand(cmd_line) {
+	job_list = jobs;
+}
 
+void BackgroundCommand::execute() {
+	unsigned long list_size = job_list->ListSize();
+	if (list_size == 0) {
+		std::cout << "smash error: bg: there is no stopped jobs to resume\n";
+		return;
+	}
+	int num_of_args;
+	int res;
+	char* arg_list[COMMAND_MAX_ARGS + 1];
+	num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
+	if ((num_of_args != 3 && num_of_args != 2) || !is_numeric(arg_list[1]) || (num_of_args == 3 && !is_numeric(arg_list[2]))) { //checking input
+		std::cout << "smash error: bg: invalid arguments\n";
+		for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
+			if (arg_list[i] == NULL) break;
+			std::free(arg_list[i]);
+		}
+		return;
+	}
+	int jobID;
+	JobsList::JobEntry* job;
+	//if a specific job was stated
+	if (num_of_args == 3) {
+		//checking if jobID is valid
+		try {
+			jobID = stoi(arg_list[1]);
+		}
+		catch (out_of_range &e) {
+			std::cout << "smash error: bg: invalid arguments\n";
+			for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
+				if (arg_list[i] == NULL) break;
+				std::free(arg_list[i]);
+				return;
+			}
+			job = job_list->getJobById(jobID);
+			if (!job) {
+				std::cout << "smash error: bg: job-id " << jobID << " does not exist\n";
+				for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
+					if (arg_list[i] == NULL) break;
+					std::free(arg_list[i]);
+					return;
+				}
+			}
+			if (!(job->isStopped)) {
+				std::cout << "smash error: bg: job-id " << jobID << " is already running in the background\n";
+				for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
+					if (arg_list[i] == NULL) break;
+					std::free(arg_list[i]);
+					return;
+				}
+			}
+
+			//if a specific job was NOT stated
+			else {
+				job = job_list->getLastStoppedJob(&jobID);
+				if (job == nullptr) {
+					std::cout << "smash error: bg: there is no stopped jobs to resume\n";
+					for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
+						if (arg_list[i] == NULL) break;
+						std::free(arg_list[i]);
+						return;
+					}
+				}
+
+				int res = job_list->ExecuteSignal(jobID);
+				if (res == OK) {
+					pid_t jobPID = job->GetCommand()->GetPID();
+					std::cout << job->GetCommand()->GetCmdLine() << " : " << jobPID << "\n";
+				}
+
+				//free allocated memory from arg_list
+				for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
+					if (arg_list[i] == NULL) break;
+					std::free(arg_list[i]);
+				}
 }
 
 
@@ -715,8 +808,18 @@ void SmallShell::executeCommand(const char *cmd_line) {
 
 //TO DO- COMPLETE
 SmallShell::SmallShell() {
-	this.old_pwd = new char*[HISTORY_MAX_RECORDS + 1];
-	for (int i = 0; i <= HISTORY_MAX_RECORDS; i++) {
-		this.old_pwd[i] = "";
-	}
+	old_pwd = new char**;
+	*old_pwd = nullptr;
+
+	curr_pwd = new char**;
+	char * buf = nullptr;
+	size_t size = 0;
+	getcwd(buf, size); //TODO: make sure this is ok
+	curr_pwd* = buf;
+
+}
+
+Stashed changes SmallShell()
+{
+	return Stashed changes();
 }
