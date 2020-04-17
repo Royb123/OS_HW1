@@ -4,7 +4,7 @@
 # compile CXX with C:/cygwin64/bin/g++.exe
 CXX_FLAGS = -g   -std=gnu++14
 
-CXX_DEFINES = 
+CXX_DEFINES = -D_GNU_SOURCE
 
 CXX_INCLUDES = 
 

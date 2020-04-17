@@ -5,10 +5,16 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
   "/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/Commands.cpp" "/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/cmake-build-debug/CMakeFiles/Smash.dir/Commands.cpp.o"
+  "/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/main.cpp" "/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/cmake-build-debug/CMakeFiles/Smash.dir/main.cpp.o"
   "/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/signals.cpp" "/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/cmake-build-debug/CMakeFiles/Smash.dir/signals.cpp.o"
   "/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/smash.cpp" "/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/cmake-build-debug/CMakeFiles/Smash.dir/smash.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
+
+# Preprocessor definitions for this target.
+set(CMAKE_TARGET_DEFINITIONS_CXX
+  "_GNU_SOURCE"
+  )
 
 # The include file search paths:
 set(CMAKE_CXX_TARGET_INCLUDE_PATH

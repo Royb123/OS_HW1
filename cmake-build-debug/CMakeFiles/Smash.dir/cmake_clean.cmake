@@ -2,6 +2,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/Smash.dir/smash.cpp.o"
   "CMakeFiles/Smash.dir/signals.cpp.o"
   "CMakeFiles/Smash.dir/Commands.cpp.o"
+  "CMakeFiles/Smash.dir/main.cpp.o"
   "Smash.pdb"
   "Smash.exe"
   "libSmash.dll.a"

@@ -1,8 +1,9 @@
 #ifndef SMASH_COMMAND_H_
 #define SMASH_COMMAND_H_
 
+#include <unistd.h>
 #include <vector>
-
+#include <string>
 #define COMMAND_ARGS_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
 #define HISTORY_MAX_RECORDS (50)
@@ -85,7 +86,7 @@ public:
     BuiltInCommand();
     explicit BuiltInCommand(const char* cmd_line);
     virtual ~BuiltInCommand()=default;
-    void execute() override;
+    void execute() override=0;
 };
 
 class ExternalCommand : public Command {
@@ -105,9 +106,10 @@ public:
 };
 
 class RedirectionCommand : public Command {
-    // TODO: Add your data members
+    int type;
+    Command* cmd;
 public:
-    explicit RedirectionCommand(const char* cmd_line);
+    explicit RedirectionCommand(const char* cmd_line,int type,Command* cmd);
     virtual ~RedirectionCommand() {}
     void execute() override;
     //void prepare() override;
@@ -115,15 +117,17 @@ public:
 };
 
 class ChangePromptCommand : public BuiltInCommand {
+    std::string* prompt_name;
+    std::string new_prompt;
 public:
-    ChangePromptCommand():BuiltInCommand(){};
+    ChangePromptCommand(std::string* prompt,std::string new_prompt);
     virtual ~ChangePromptCommand()=default;
-    void execute() override{};
+    void execute() override;
 };
 
 class ShowPidCommand : public BuiltInCommand {
 public:
-    ShowPidCommand();
+    ShowPidCommand()=default;
     virtual ~ShowPidCommand() = default;
     void execute() override;
 };
@@ -136,10 +140,10 @@ public:
 };
 
 class ChangeDirCommand : public BuiltInCommand {
-    char** old_pwd;
-    char** curr_pwd;
+    char* old_pwd;
+    char* curr_pwd;
 public:
-    ChangeDirCommand(const char* cmd_line, char** old_pwd, char** curr_pwd);
+    ChangeDirCommand(const char* cmd_line, char* old_pwd, char* curr_pwd);
     virtual ~ChangeDirCommand() {};
     void execute() override;
 };
@@ -235,15 +239,15 @@ class SmallShell {
 private:
     JobsList* job_list;
     std::string prompt_name;
-    char** old_pwd;
-    char** curr_pwd;
+    char* old_pwd;
+    char* curr_pwd;
     pid_t pid;
 
     // TODO: Add your data members
     SmallShell();
 public:
     ~SmallShell();
-    Command *CreateCommand(const char* cmd_line);
+    Command* CreateCommand(const char* cmd_line);
     SmallShell(SmallShell const&)      = delete; // disable copy ctor
     void operator=(SmallShell const&)  = delete; // disable = operator
     static SmallShell& getInstance() // make SmallShell singleton
@@ -253,7 +257,6 @@ public:
         return instance;
     }
     void executeCommand(const char* cmd_line);
-    void ChangePrompt(std::string new_prompt);
     std::string GetPromptName(){return prompt_name;};
 };
 

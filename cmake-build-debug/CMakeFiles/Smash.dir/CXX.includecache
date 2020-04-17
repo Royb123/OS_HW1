@@ -27,32 +27,10 @@ Commands.h
 /cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/Commands.h
 
 /cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/Commands.h
-vector
--
-
-/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/signals.cpp
-iostream
--
-signal.h
--
-signals.h
-/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/signals.h
-Commands.h
-/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/Commands.h
-
-/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/signals.h
-
-/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/smash.cpp
-iostream
--
 unistd.h
 -
-sys/wait.h
+vector
 -
-signal.h
+string
 -
-Commands.h
-/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/Commands.h
-signals.h
-/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/signals.h
 

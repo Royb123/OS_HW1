@@ -34,6 +34,7 @@
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
 					<Add directory="/usr/lib/gcc/x86_64-pc-cygwin/7.4.0/include/c++"/>
 					<Add directory="/usr/lib/gcc/x86_64-pc-cygwin/7.4.0/include/c++/x86_64-pc-cygwin"/>
 					<Add directory="/usr/lib/gcc/x86_64-pc-cygwin/7.4.0/include/c++/backward"/>
@@ -55,6 +56,7 @@
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler>
+					<Add option="-D_GNU_SOURCE"/>
 					<Add directory="/usr/lib/gcc/x86_64-pc-cygwin/7.4.0/include/c++"/>
 					<Add directory="/usr/lib/gcc/x86_64-pc-cygwin/7.4.0/include/c++/x86_64-pc-cygwin"/>
 					<Add directory="/usr/lib/gcc/x86_64-pc-cygwin/7.4.0/include/c++/backward"/>
@@ -84,6 +86,9 @@
 			<Option target="Smash"/>
 		</Unit>
 		<Unit filename="/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/Commands.h">
+			<Option target="Smash"/>
+		</Unit>
+		<Unit filename="/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/main.cpp">
 			<Option target="Smash"/>
 		</Unit>
 		<Unit filename="/cygdrive/c/Users/User/Documents/Technion/Spring2020/Operating_System/HW1/OS_HW1/signals.cpp">
