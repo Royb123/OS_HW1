@@ -190,7 +190,91 @@ BuiltInCommand::BuiltInCommand():Command(){}
 
 BuiltInCommand::BuiltInCommand(const char* cmd_line):Command(cmd_line){}
 
-/*-------------------------Command Redirection--------------------*/
+/*-------------------------Command Pipe----------------------------------*/
+PipeCommand::PipeCommand(const char* cmd_line,int type,Command* cmd1,Command* cmd2):
+Command(cmd_line),cmd1(cmd1),cmd2(cmd2),type(type){}
+void PipeCommand::execute(){
+	pid_t pid=fork(); //TODO: add setgrp()!
+	if(pid==-1){
+		perror("smash error: fork failed\n");
+		return;
+	}
+	if(pid==0){
+		int stdin_copy=0;
+		int stdout_copy=1;
+		int stderr_copy=2;
+		int res1,res2;
+		if(type==PIPE){
+			stdin_copy = dup(0);
+			stdout_copy = dup(1);
+			res1=close(0); //close stdin
+			res2=close(1); //close stdout
+		}
+		else{
+			stdin_copy = dup(0);
+			stderr_copy = dup(2);
+			res1=close(0); //close stdin
+			res2=close(2); //close stderr
+		}
+		if(res1==-1 || res2==-1){
+			perror("smash error: close failed\n");
+			exit(-1); //TODO: is this ok
+		}
+		int pipe_arr[2];
+		int res=pipe(pipe_arr);
+		if(res==-1){
+			perror("smash error: pipe failed\n");
+			exit(-1);
+		}
+		pid_t pid1=fork();
+		if(pid1==-1){
+			perror("smash error: fork failed\n");
+			exit(-1);
+		}
+		if(pid1==0){
+			int res3=close(pipe_arr[1]);
+			int res4;
+			if(type==PIPE){
+				dup2(stdout_copy,1);
+				res4=close(stdout_copy);
+			}
+			else{
+				dup2(stderr_copy,2);
+				res4=close(stderr_copy);
+			}
+			if(res3==-1|| res4==-1){
+				perror("smash error: close failed\n");
+				exit(-1);
+			}
+
+			cmd2->execute();
+			exit(0);
+		}
+		else{
+			int res5=close(pipe_arr[0]);
+			dup2(stdin_copy,0);
+			int res6=close(stdin_copy);
+			if(res5==-1|| res6==-1){
+				perror("smash error: close failed\n");
+				exit(-1);
+			}
+			cmd1->execute();
+			int status;
+			waitpid(pid1,&status,0); //TODO: check this!!!
+			exit(0);
+		}
+	}
+
+	else{
+		//TODO: add support for &
+
+		delete cmd1;
+		delete cmd2;
+		return;
+	}
+
+}
+/*-------------------------Command Redirection---------------------------*/
 RedirectionCommand::RedirectionCommand(const char* cmd_line,int type,Command* cmd):
 		Command(cmd_line),type(type),cmd(cmd){}
 
@@ -509,17 +593,16 @@ QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs) :BuiltInCommand(c
 	jobs_list = jobs;
 	char * args[COMMAND_MAX_ARGS + 1];
 	int num_of_args = _parseCommandLine(cmd_line, args);
-	if (num_of_args == 1) {
-		isKillSpecified = false;
-	}
-	else {
-		string second_word = string(args[1]);
-		if (second_word == "kill") {
-			isKillSpecified = true;
-		}
-		else {
-			isKillSpecified = false;
-		}
+	isKillSpecified=false;
+	if(num_of_args >= 2){
+        string second_word;
+	    for(int i=1;i<num_of_args;i++){
+	        second_word=string(args[i]);
+            if (second_word == "kill") {
+                isKillSpecified = true;
+                break;
+            }
+	    }
 	}
 }
 
@@ -746,9 +829,34 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 	int num_of_args,res;
 	char* arg_list[COMMAND_MAX_ARGS+1];
 	num_of_args=_parseCommandLine(cmd_line,arg_list);
+	if(num_of_args==0){
+	    FreeCmdArray(arg_list,num_of_args);
+	    return nullptr;
+	}
 	res=FindIfIO(arg_list,num_of_args);
-	string first_word=string(arg_list[0]);
+    if(res==PIPE || res==PIPEERR){
+    	string cmd_s=string(cmd_line);
+    	string cmd1_s;
+    	string cmd2_s;
+    	unsigned long ind;
+    	if(res==PIPE){
+    		ind=cmd_s.find('|');
+    		cmd1_s=cmd_s.substr(0,ind-1);
+			cmd2_s=cmd_s.substr(ind+1,string::npos);
+    	}
+    	else{
+    		ind=cmd_s.find("|&");
+			cmd1_s=cmd_s.substr(0,ind-1);
+			cmd2_s=cmd_s.substr(ind+2,string::npos);
+    	}
+    	Command* cmd1=CreateCommand(cmd1_s.c_str());
+    	Command* cmd2=CreateCommand(cmd2_s.c_str());
+    	cmd=new PipeCommand(cmd_line,res,cmd1,cmd2);
+    	FreeCmdArray(arg_list,num_of_args);
+    	return cmd;
+    }
 
+	string first_word=string(arg_list[0]);
 	if(first_word=="chprompt"){
 		string new_prompt;
 		if(num_of_args==1){
@@ -789,16 +897,12 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 		cmd=new ExternalCommand(cmd_line, job_list);
 	}
 
-	if(builtin && res!=REGULAR){
+	if(res!=REGULAR){
 		FreeCmdArray(arg_list,num_of_args);
-		if(res==OVERRIDE || res==APPEND) {
+		if((res==OVERRIDE || res==APPEND) && builtin) {
 			RedirectionCommand* reder_cmd = new RedirectionCommand(cmd_line,res,cmd);
 			return reder_cmd;
-		}
-		else{
-			//TODO: pipeline command here
-		}
-
+		} //TODO: redirection needs to support external commands??
 	}
 
 	FreeCmdArray(arg_list,num_of_args);

@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <vector>
 #include <string>
+#include <fcntl.h>
 #define COMMAND_ARGS_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
 #define HISTORY_MAX_RECORDS (50)
@@ -99,9 +100,11 @@ public:
 };
 
 class PipeCommand : public Command {
-    // TODO: Add your data members
+    int type;
+    Command* cmd1;
+    Command* cmd2;
 public:
-    PipeCommand(const char* cmd_line);
+    PipeCommand(const char* cmd_line,int type,Command* cmd1,Command* cmd2);
     virtual ~PipeCommand() {}
     void execute() override;
 };
