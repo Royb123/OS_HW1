@@ -144,6 +144,44 @@ Command::Command(const char* cmd_line):cmd_line(cmd_line){
 }
 
 /*========================================================================*/
+/*===========================External Commands============================*/
+/*========================================================================*/
+
+ExternalCommand::ExternalCommand(const char* cmd_line, JobsList* jobs):Command(cmd_line){
+    this->jobs = jobs;
+}
+
+void ExternalCommand::execute(){
+    int num_of_args;
+    char* arg_list[COMMAND_MAX_ARGS + 1];
+    num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
+
+    //if empty command was sent
+    if (arg_list[0]==NULL){
+        FreeCmdArray(arg_list,num_of_args);
+        return;
+    }
+
+    pid_t parent_pid = getpid();
+    pid_t pid = fork();
+    if (pid == 0) { //child
+        execl("/bin/bash", "bash", "-c", GetCmdLine(), NULL);
+    }
+    else { //parent
+        int last_arg_size = strlen(arg_list[num_of_args-1]);
+        if (string(arg_list[num_of_args-1])=="&" || arg_list[num_of_args-1][last_arg_size-1]=='&'){
+            jobs->addJob(); //NEED TO FINISH/////////////////////////////////////////////
+        }
+        wait(&pid);
+    }
+
+    FreeCmdArray(arg_list,num_of_args);
+}
+
+
+
+
+/*========================================================================*/
 /*===========================Built In Commands============================*/
 /*========================================================================*/
 
@@ -300,11 +338,8 @@ void KillCommand::execute() {
 	num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
 	if (num_of_args != 3 || arg_list[1][0] != '-' || !is_numeric(arg_list[2]) || !is_numeric((arg_list[1] + 1 * sizeof(char)))) { //checking input
 		std::cout << "smash error: kill: invalid arguments\n";
-		for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
-			if (arg_list[i] == NULL) break;
-			std::free(arg_list[i]);
-		}
-		return;
+        FreeCmdArray(arg_list,num_of_args);
+        return;
 	}
 	//checking if jobID is valid
 	int jobID=stoi(arg_list[2]);
@@ -322,10 +357,8 @@ void KillCommand::execute() {
 		}
 	}
 
-	for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
-		if (arg_list[i] == NULL) break;
-		std::free(arg_list[i]);
-	}
+    FreeCmdArray(arg_list,num_of_args);
+
 }
 
 
@@ -420,10 +453,7 @@ void BackgroundCommand::execute() {
 	if ((num_of_args != 3 && num_of_args != 2) || !is_numeric(arg_list[1]) ||
 		(num_of_args == 3 && !is_numeric(arg_list[2]))) { //checking input
 		std::cout << "smash error: bg: invalid arguments\n";
-		for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
-			if (arg_list[i] == NULL) break;
-			std::free(arg_list[i]);
-		}
+        FreeCmdArray(arg_list,num_of_args);
 		return;
 	}
 	int jobID;
@@ -436,28 +466,17 @@ void BackgroundCommand::execute() {
 		}
 		catch (out_of_range &e) {
 			std::cout << "smash error: bg: invalid arguments\n";
-			for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
-				if (arg_list[i] == NULL) break;
-				std::free(arg_list[i]);
-			}
+            FreeCmdArray(arg_list,num_of_args);
 			return;
 		}
 		job = job_list->getJobById(jobID);
 		if (!job) {
 			std::cout << "smash error: bg: job-id " << jobID << " does not exist\n";
-			for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
-				if (arg_list[i] == NULL) break;
-				std::free(arg_list[i]);
-				return;
-			}
+            FreeCmdArray(arg_list,num_of_args);
 		}
 		if (!(job->isStopped())) {
 			std::cout << "smash error: bg: job-id " << jobID << " is already running in the background\n";
-			for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
-				if (arg_list[i] == NULL) break;
-				std::free(arg_list[i]);
-				return;
-			}
+            FreeCmdArray(arg_list,num_of_args);
 		}
 	}
 
@@ -758,13 +777,16 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 	else if(first_word=="fg"){
 		cmd=new ForegroundCommand(cmd_line,job_list);
 	}
-	else if(first_word=="bg"){}
+	else if(first_word=="bg"){
+	    cmd=new BackgroundCommand(cmd_line,job_list);
+	}
 	else if(first_word=="quit"){
 		cmd=new QuitCommand(cmd_line,job_list);
 	}
 	else{
+	    //external command will include the case that there is no command to execute
 		builtin=false;
-		//TODO: create External command
+		cmd=new ExternalCommand(cmd_line, job_list);
 	}
 
 	if(builtin && res!=REGULAR){

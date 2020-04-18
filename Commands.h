@@ -90,8 +90,9 @@ public:
 };
 
 class ExternalCommand : public Command {
+    JobsList* jobs;
 public:
-    ExternalCommand(const char* cmd_line);
+    ExternalCommand(const char* cmd_line, JobsList* jobs);
     virtual ~ExternalCommand() {}
     void execute() override;
 
