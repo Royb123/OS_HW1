@@ -105,6 +105,19 @@ void FreeCmdArray(char ** arg_list,int num_of_args){
 	}
 }
 
+char* CopyCmd(const char * cmd_line){
+    string cmd_s=string(cmd_line);
+    unsigned long size= cmd_s.size();
+    char * new_cmd_line=new char[size+1];
+
+    for (unsigned long i = 0; i < size;i++) {
+    	char p=cmd_line[i];
+    	new_cmd_line[i]=cmd_line[i];
+    }
+    new_cmd_line[size]=0;
+    return new_cmd_line;
+}
+
 
 int FindIfIO(char** arg_list,int num_of_args){
 	int res=REGULAR;
@@ -137,10 +150,17 @@ int FindIfIO(char** arg_list,int num_of_args){
 // TODO: Add your implementation for classes in Commands.h
 Command::Command():cmd_line(""){
 	pid=getpid();
+	background=false;
 
 };
-Command::Command(const char* cmd_line):cmd_line(cmd_line){
+Command::Command(const char* cmd_line){
+	cmd_str= new string(cmd_line);
+	this->cmd_line=cmd_str->c_str();
 	pid=getpid();
+	background=false;
+}
+Command::~Command(){
+	delete cmd_str;
 }
 
 /*========================================================================*/
@@ -149,6 +169,26 @@ Command::Command(const char* cmd_line):cmd_line(cmd_line){
 
 ExternalCommand::ExternalCommand(const char* cmd_line, JobsList* jobs):Command(cmd_line){
     this->jobs = jobs;
+	int num_of_args;
+	char* arg_list[COMMAND_MAX_ARGS + 1];
+	num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
+	size_t last_arg_size = strlen(arg_list[num_of_args-1]);
+	if(string(arg_list[num_of_args-1])=="&" || arg_list[num_of_args-1][last_arg_size-1]=='&'){
+	ChangeBackground();
+	}
+	if(GetBackground()){
+		cmd_without_bck=CopyCmd(GetCmdLine()); //drop the &
+		_removeBackgroundSign(cmd_without_bck);
+	}
+	else{
+		cmd_without_bck= nullptr;
+	}
+	FreeCmdArray(arg_list,num_of_args);
+}
+ExternalCommand::~ExternalCommand() {
+	if(GetBackground()){
+		delete cmd_without_bck;
+	}
 }
 
 void ExternalCommand::execute(){
@@ -161,18 +201,29 @@ void ExternalCommand::execute(){
         FreeCmdArray(arg_list,num_of_args);
         return;
     }
-
-    pid_t parent_pid = getpid();
     pid_t pid = fork();
+    if(pid==-1){
+        perror("smash error: fork failed\n");
+    }
     if (pid == 0) { //child
-        execl("/bin/bash", "bash", "-c", GetCmdLine(), NULL);
+    	if(GetBackground()){
+			execl("/bin/bash", "bash", "-c", cmd_without_bck, NULL);
+
+    	}
+    	else{
+			execl("/bin/bash", "bash", "-c", GetCmdLine(), NULL);
+    	}
+
     }
     else { //parent
-        int last_arg_size = strlen(arg_list[num_of_args-1]);
-        if (string(arg_list[num_of_args-1])=="&" || arg_list[num_of_args-1][last_arg_size-1]=='&'){
-            jobs->addJob(); //NEED TO FINISH/////////////////////////////////////////////
+		ChangePID(pid);
+        if (GetBackground()){
+			FreeCmdArray(arg_list,num_of_args);
+            jobs->addJob(this,false); //NEED TO FINISH/////////////////////////////////////////////
+            return;
         }
-        wait(&pid);
+        int status;
+        waitpid(pid,&status,0);
     }
 
     FreeCmdArray(arg_list,num_of_args);
@@ -200,6 +251,7 @@ void PipeCommand::execute(){
 		return;
 	}
 	if(pid==0){
+	    setpgrp();
 		int stdin_copy=0;
 		int stdout_copy=1;
 		int stderr_copy=2;
@@ -232,6 +284,7 @@ void PipeCommand::execute(){
 			exit(-1);
 		}
 		if(pid1==0){
+		    setpgrp();
 			int res3=close(pipe_arr[1]);
 			int res4;
 			if(type==PIPE){
@@ -635,6 +688,8 @@ SmallShell::SmallShell():prompt_name("smash>") {
 	buf=get_current_dir_name();
 	curr_pwd = buf;
 	job_list=new JobsList();
+	pid=getpid();
+	current_cmd= nullptr;
 
 }
 SmallShell::~SmallShell() {
@@ -673,21 +728,25 @@ JobsList::JobEntry* JobsList::getJobById(int jobId){
 void JobsList::removeFinishedJobs(){
 	int status;
 	pid_t pid;
-	int res=0;
-	vector<JobEntry*>::iterator iter;
-	for (iter=lst.begin(); iter!=lst.end(); iter++){
+	pid_t res=0;
+	vector<JobEntry*>::iterator iter=lst.begin();
+	while(iter!=lst.end()){
 		if((*iter)->isStopped()){
+			++iter;
 			continue;
 		}
 		pid=(*iter)->GetCommand()->GetPID();
 		res=waitpid(pid,&status,WNOHANG);
 		if(res==-1){
 			perror("smash error: waitpid failed\n");
+			++iter;
 			continue;
 		}
-		if(status==pid){
-			lst.erase(iter);
+		if(res==pid){
+			iter=lst.erase(iter);
+			continue;
 		}
+		++iter;
 	}
 	if(lst.empty()){
 		max_job_id=0;
@@ -715,7 +774,7 @@ void JobsList::printJobsList(){
 		}
 		duration=difftime(now,start_time);
 		std::cout << "[" << jobID << "] " << cmd << " : " << pid << " ";
-		std::cout<<duration;
+		std::cout<<duration << " secs";
 		if((*iter)->isStopped()){
 			std::cout << " (stopped)";
 		}
@@ -897,12 +956,11 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 		cmd=new ExternalCommand(cmd_line, job_list);
 	}
 
-	if(res!=REGULAR){
+	if((res==OVERRIDE || res==APPEND) && builtin){
 		FreeCmdArray(arg_list,num_of_args);
-		if((res==OVERRIDE || res==APPEND) && builtin) {
-			RedirectionCommand* reder_cmd = new RedirectionCommand(cmd_line,res,cmd);
-			return reder_cmd;
-		} //TODO: redirection needs to support external commands??
+		RedirectionCommand* reder_cmd = new RedirectionCommand(cmd_line,res,cmd);
+		return reder_cmd;
+	 	//TODO: redirection needs to support external commands??
 	}
 
 	FreeCmdArray(arg_list,num_of_args);
@@ -916,7 +974,12 @@ void SmallShell::executeCommand(const char *cmd_line) {
 	if(!cmd){
 		return; //TODO: throw error?
 	}
-	cmd->execute();
+	current_cmd=cmd;
+	current_cmd->execute();
+	current_cmd= nullptr;
+	if(cmd->GetBackground()){
+		return;
+	}
 	delete cmd;
 	// Please note that you must fork smash process for some commands (e.g., external commands....)
 }

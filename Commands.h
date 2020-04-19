@@ -20,15 +20,27 @@ class Command {
 // TODO: Add your data members
     const char* cmd_line;
     pid_t pid;
+    bool background;
+    std::string* cmd_str;
 public:
     Command();
     explicit Command(const char* cmd_line);
-    virtual ~Command()=default;
+    virtual ~Command();
     virtual void execute() = 0;
     //virtual void prepare();
     //virtual void cleanup();
     const char* GetCmdLine(){return cmd_line;};
     const pid_t GetPID(){return pid;}
+    bool GetBackground(){return background;};
+    void ChangePID(pid_t new_pid){pid=new_pid;};
+    void ChangeBackground(){
+    if(!background){
+        background=true;
+        }
+    else{
+        background=false;
+        }
+    }
 
     // TODO: Add your extra methods if needed
 };
@@ -92,9 +104,10 @@ public:
 
 class ExternalCommand : public Command {
     JobsList* jobs;
+    char * cmd_without_bck;
 public:
     ExternalCommand(const char* cmd_line, JobsList* jobs);
-    virtual ~ExternalCommand() {}
+    virtual ~ExternalCommand();
     void execute() override;
 
 };
@@ -246,8 +259,7 @@ private:
     char* old_pwd;
     char* curr_pwd;
     pid_t pid;
-
-    // TODO: Add your data members
+    Command* current_cmd;
     SmallShell();
 public:
     ~SmallShell();
@@ -262,6 +274,9 @@ public:
     }
     void executeCommand(const char* cmd_line);
     std::string GetPromptName(){return prompt_name;};
+    pid_t GetPID(){return pid;};
+    JobsList* GetJobList(){return job_list;}; //TODO: maybe create interface
+    Command* GetCurrCmd(){return current_cmd;};
 };
 
 #endif //SMASH_COMMAND_H_
