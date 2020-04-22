@@ -25,12 +25,8 @@ class Command {
 public:
     Command();
     explicit Command(const char* cmd_line);
-<<<<<<< Updated upstream
-    virtual ~Command();
-=======
     explicit Command(const char* cmd_line, pid_t pid);
-    virtual ~Command()=default;
->>>>>>> Stashed changes
+    virtual ~Command();
     virtual void execute() = 0;
     //virtual void prepare();
     //virtual void cleanup();
@@ -47,7 +43,6 @@ public:
         }
     }
 
-    // TODO: Add your extra methods if needed
 };
 
 class JobsList {
@@ -128,13 +123,6 @@ public:
     void execute() override;
 };
 
-class CommandForJobList : public Command{
-public:
-    CommandForJobList(const char* cmd_line, pid_t pid): Command(GetCmdLine(), pid){};
-    virtual ~CommandForJobList();
-    void execute() override;
-};
-
 class RedirectionCommand : public Command {
     int type;
     Command* cmd;
@@ -144,6 +132,21 @@ public:
     void execute() override;
     //void prepare() override;
     //void cleanup() override;
+};
+
+class CopyCommand : public Command {
+    JobsList* jobs;
+public:
+    CopyCommand(const char* cmd_line, JobsList* jobs);
+    virtual ~CopyCommand() {}
+    void execute() override;
+};
+
+class CommandForJobList : public Command{
+public:
+    CommandForJobList(const char* cmd_line, pid_t pid): Command(GetCmdLine(), pid){};
+    virtual ~CommandForJobList();
+    void execute() override{return;};
 };
 
 class ChangePromptCommand : public BuiltInCommand {
@@ -221,49 +224,9 @@ public:
     virtual ~QuitCommand()= default;
     void execute() override;
 };
-/*
-class CommandsHistory {
- protected:
-  class CommandHistoryEntry {
-	  // TODO: Add your data members
-  };
- // TODO: Add your data members
- public:
-  CommandsHistory();
-  ~CommandsHistory() {}
-  void addRecord(const char* cmd_line);
-  void printHistory();
-};
-
-class HistoryCommand : public BuiltInCommand {
- // TODO: Add your data members
- public:
-  HistoryCommand(const char* cmd_line, CommandsHistory* history);
-  virtual ~HistoryCommand() {}
-  void execute() override;
-};
-*/
 
 
 
-
-
-
-
-// TODO: should it really inhirit from BuiltInCommand ?
-class CopyCommand : public BuiltInCommand {
-public:
-    CopyCommand(const char* cmd_line);
-    virtual ~CopyCommand() {}
-    void execute() override;
-};
-
-
-
-
-
-// TODO: add more classes if needed
-// maybe chprompt , timeout ?
 
 class SmallShell {
 private:
