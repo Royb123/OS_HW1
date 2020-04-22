@@ -852,7 +852,7 @@ void BackgroundCommand::execute() {
 QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs) :BuiltInCommand(cmd_line) {
 	jobs_list = jobs;
 	char * args[COMMAND_MAX_ARGS + 1];
-	int num_of_args = _parseCommandLine(cmd_line, args);
+	int num_of_args = _parseCommandLine(cmd_line,args);
 	isKillSpecified=false;
 	if(num_of_args >= 2){
         string second_word;
@@ -864,6 +864,7 @@ QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs) :BuiltInCommand(c
             }
 	    }
 	}
+	FreeCmdArray(args,num_of_args);
 }
 
 void QuitCommand::execute() {
@@ -897,10 +898,12 @@ SmallShell::SmallShell():prompt_name("smash>") {
 	job_list=new JobsList();
 	pid=getpid();
 	current_cmd= nullptr;
+    std::vector<Command*>* timeout_commands= new vector<Command*>();
 
 }
 SmallShell::~SmallShell() {
 	delete job_list;
+	delete timeout_commands;
 }
 
 
@@ -1008,7 +1011,7 @@ void JobsList::PrintForQuit(){
 	std::cout << "smash: sending SIGKILL signal to " << size <<" jobs:\n";
 	for (vector<JobEntry*>::iterator iter=lst.begin(); iter!=lst.end(); iter++){
 		pid=(*iter)->GetCommand()->GetPID();
-		std::cout << pid << ": " << (*iter)->GetCommand() << "\n";
+		std::cout << pid << ": " << (*iter)->GetCommand()->GetCmdLine() << "\n";
 	}
 	std::cout <<"Linux-shell:" << "\n";
 
@@ -1157,14 +1160,20 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 	else if(first_word=="quit"){
 		cmd=new QuitCommand(cmd_line,job_list);
 	}
+<<<<<<< Updated upstream
 	else if(first_word=="cp"){
 	    cmd=new CopyCommand(cmd_line);
+=======
+	else if(first_word=="timeout"){
+		cmd=new TimeoutCommand();
+>>>>>>> Stashed changes
 	}
 	else{
 	    //external command will include the case that there is no command to execute
 		builtin=false;
 		cmd=new ExternalCommand(cmd_line, job_list);
 	}
+
 
 	if((res==OVERRIDE || res==APPEND) && builtin){
 		FreeCmdArray(arg_list,num_of_args);
