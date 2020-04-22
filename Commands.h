@@ -216,13 +216,79 @@ public:
     virtual ~QuitCommand()= default;
     void execute() override;
 };
+<<<<<<< Updated upstream
 
 
+=======
+/*
+class CommandsHistory {
+ protected:
+  class CommandHistoryEntry {
+	  // TODO: Add your data members
+  };
+ // TODO: Add your data members
+ public:
+  CommandsHistory();
+  ~CommandsHistory() {}
+  void addRecord(const char* cmd_line);
+  void printHistory();
+};
+
+class HistoryCommand : public BuiltInCommand {
+ // TODO: Add your data members
+ public:
+  HistoryCommand(const char* cmd_line, CommandsHistory* history);
+  virtual ~HistoryCommand() {}
+  void execute() override;
+};
+*/
+
+
+
+
+
+
+
+// TODO: should it really inhirit from BuiltInCommand ?
+class CopyCommand : public BuiltInCommand {
+public:
+    CopyCommand(const char* cmd_line);
+    virtual ~CopyCommand() {}
+    void execute() override;
+};
+
+
+class TimeoutCommand : public BuiltInCommand {
+public:
+    TimeoutCommand(const char* cmd_line);
+    virtual ~TimeoutCommand() {}
+    void execute() override;
+};
+class TimeoutEntry {
+    const int jobid;
+    Command* command;
+    time_t start_time;
+    time_t finish_time;
+    int duration;
+public:
+    TimeoutEntry(int ID,Command* cmd,int duration) : jobid(ID),duration(duration){
+        command = cmd;
+        start_time = time(nullptr); //TODO: handle errors
+        finish_time= start_time+duration;
+    }
+    ~TimeoutEntry() = default;
+    int GetJobID(){ return jobid; }
+    time_t GetStartTime(){ return start_time; }
+    time_t GetDuration(){ return duration; }
+    time_t GetFinishTime(){ return finish_time; }
+    Command* GetCommand(){ return command; }
+};
 
 
 class SmallShell {
 private:
     JobsList* job_list;
+    std::vector<TimeoutEntry*>* timeout_commands;
     std::string prompt_name;
     char* old_pwd;
     char* curr_pwd;
@@ -230,6 +296,7 @@ private:
     Command* current_cmd;
     SmallShell();
 public:
+
     ~SmallShell();
     Command* CreateCommand(const char* cmd_line);
     SmallShell(SmallShell const&)      = delete; // disable copy ctor
