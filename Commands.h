@@ -25,7 +25,12 @@ class Command {
 public:
     Command();
     explicit Command(const char* cmd_line);
+<<<<<<< Updated upstream
     virtual ~Command();
+=======
+    explicit Command(const char* cmd_line, pid_t pid);
+    virtual ~Command()=default;
+>>>>>>> Stashed changes
     virtual void execute() = 0;
     //virtual void prepare();
     //virtual void cleanup();
@@ -94,6 +99,7 @@ public:
     int ExecuteSignal(int jobID,int signal);
     // TODO: Add extra methods or modify exisitng ones as needed
 };
+
 class BuiltInCommand : public Command {
 public:
     BuiltInCommand();
@@ -119,6 +125,13 @@ class PipeCommand : public Command {
 public:
     PipeCommand(const char* cmd_line,int type,Command* cmd1,Command* cmd2);
     virtual ~PipeCommand() {}
+    void execute() override;
+};
+
+class CommandForJobList : public Command{
+public:
+    CommandForJobList(const char* cmd_line, pid_t pid): Command(GetCmdLine(), pid){};
+    virtual ~CommandForJobList();
     void execute() override;
 };
 

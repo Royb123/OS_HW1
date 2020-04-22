@@ -153,15 +153,22 @@ Command::Command():cmd_line(""){
 	background=false;
 
 };
+<<<<<<< Updated upstream
 Command::Command(const char* cmd_line){
 	cmd_str= new string(cmd_line);
 	this->cmd_line=cmd_str->c_str();
+=======
+
+Command::Command(const char* cmd_line):cmd_line(cmd_line){
+>>>>>>> Stashed changes
 	pid=getpid();
 	background=false;
 }
 Command::~Command(){
 	delete cmd_str;
 }
+
+Command::Command(const char* cmd_line, pid_t pid):cmd_line(cmd_line), pid(pid){}
 
 /*========================================================================*/
 /*===========================External Commands============================*/
@@ -206,6 +213,7 @@ void ExternalCommand::execute(){
         perror("smash error: fork failed\n");
     }
     if (pid == 0) { //child
+<<<<<<< Updated upstream
     	if(GetBackground()){
 			execl("/bin/bash", "bash", "-c", cmd_without_bck, NULL);
 
@@ -224,27 +232,36 @@ void ExternalCommand::execute(){
         }
         int status;
         waitpid(pid,&status,0);
+=======
+        setpgrp();
+        execl("/bin/bash", "bash", "-c", GetCmdLine(), NULL);
+    }
+    else { //parent
+        int last_arg_size = strlen(arg_list[num_of_args-1]);
+        if (string(arg_list[num_of_args-1])=="&" || arg_list[num_of_args-1][last_arg_size-1]=='&'){
+            CommandForJobList* temp = new CommandForJobList(GetCmdLine(), pid);
+            jobs->addJob(temp);
+        }
+        else{
+            waitpid(pid, nullptr, 0);
+        }
+
+>>>>>>> Stashed changes
     }
 
     FreeCmdArray(arg_list,num_of_args);
 }
 
-
-
-
 /*========================================================================*/
-/*===========================Built In Commands============================*/
+/*===========================Special Commands============================*/
 /*========================================================================*/
-
-/*---------------------BuiltInCommand Class Functions---------------------*/
-BuiltInCommand::BuiltInCommand():Command(){}
-
-BuiltInCommand::BuiltInCommand(const char* cmd_line):Command(cmd_line){}
 
 /*-------------------------Command Pipe----------------------------------*/
 PipeCommand::PipeCommand(const char* cmd_line,int type,Command* cmd1,Command* cmd2):
-Command(cmd_line),cmd1(cmd1),cmd2(cmd2),type(type){}
+        Command(cmd_line),cmd1(cmd1),cmd2(cmd2),type(type){}
+
 void PipeCommand::execute(){
+<<<<<<< Updated upstream
 	pid_t pid=fork(); //TODO: add setgrp()!
 	if(pid==-1){
 		perror("smash error: fork failed\n");
@@ -299,70 +316,278 @@ void PipeCommand::execute(){
 				perror("smash error: close failed\n");
 				exit(-1);
 			}
+=======
+    pid_t pid=fork(); //TODO: add setgrp()!
+    if(pid==-1){
+        perror("smash error: fork failed\n");
+        return;
+    }
+    if(pid==0){
+        int stdin_copy=0;
+        int stdout_copy=1;
+        int stderr_copy=2;
+        int res1,res2;
+        if(type==PIPE){
+            stdin_copy = dup(0);
+            stdout_copy = dup(1);
+            res1=close(0); //close stdin
+            res2=close(1); //close stdout
+        }
+        else{
+            stdin_copy = dup(0);
+            stderr_copy = dup(2);
+            res1=close(0); //close stdin
+            res2=close(2); //close stderr
+        }
+        if(res1==-1 || res2==-1){
+            perror("smash error: close failed\n");
+            exit(-1); //TODO: is this ok
+        }
+        int pipe_arr[2];
+        int res=pipe(pipe_arr);
+        if(res==-1){
+            perror("smash error: pipe failed\n");
+            exit(-1);
+        }
+        pid_t pid1=fork();
+        if(pid1==-1){
+            perror("smash error: fork failed\n");
+            exit(-1);
+        }
+        if(pid1==0){
+            int res3=close(pipe_arr[1]);
+            int res4;
+            if(type==PIPE){
+                dup2(stdout_copy,1);
+                res4=close(stdout_copy);
+            }
+            else{
+                dup2(stderr_copy,2);
+                res4=close(stderr_copy);
+            }
+            if(res3==-1|| res4==-1){
+                perror("smash error: close failed\n");
+                exit(-1);
+            }
+>>>>>>> Stashed changes
 
-			cmd2->execute();
-			exit(0);
-		}
-		else{
-			int res5=close(pipe_arr[0]);
-			dup2(stdin_copy,0);
-			int res6=close(stdin_copy);
-			if(res5==-1|| res6==-1){
-				perror("smash error: close failed\n");
-				exit(-1);
-			}
-			cmd1->execute();
-			int status;
-			waitpid(pid1,&status,0); //TODO: check this!!!
-			exit(0);
-		}
-	}
+            cmd2->execute();
+            exit(0);
+        }
+        else{
+            int res5=close(pipe_arr[0]);
+            dup2(stdin_copy,0);
+            int res6=close(stdin_copy);
+            if(res5==-1|| res6==-1){
+                perror("smash error: close failed\n");
+                exit(-1);
+            }
+            cmd1->execute();
+            int status;
+            waitpid(pid1,&status,0); //TODO: check this!!!
+            exit(0);
+        }
+    }
 
-	else{
-		//TODO: add support for &
+    else{
+        //TODO: add support for &
 
-		delete cmd1;
-		delete cmd2;
-		return;
-	}
+        delete cmd1;
+        delete cmd2;
+        return;
+    }
 
 }
+
+
 /*-------------------------Command Redirection---------------------------*/
 RedirectionCommand::RedirectionCommand(const char* cmd_line,int type,Command* cmd):
-		Command(cmd_line),type(type),cmd(cmd){}
+        Command(cmd_line),type(type),cmd(cmd){}
 
 void RedirectionCommand::execute() {
-	char* arg_list[COMMAND_MAX_ARGS+1];
-	int num_of_args=_parseCommandLine(GetCmdLine(),arg_list);
-	string redirection_sign;
-	string file_name;
-	if(type==APPEND){
-		redirection_sign=">>";
-	}
-	else{
-		redirection_sign=">";
-	}
-	for (int i = 1; i < num_of_args;i++) {
-		if (arg_list[i-1] == redirection_sign){
-			file_name=arg_list[i];
-			break;
-		}
-	}
-	ofstream out_file;
-	//TODO: make sure the file exist!
-	if(type==APPEND){
-		out_file=ofstream(file_name,ofstream::out|ofstream::app);
-	}
-	else{
-		out_file=ofstream(file_name,ofstream::out|ofstream::trunc);
-	}
-	streambuf* cout_buffer = cout.rdbuf();
-	cout.rdbuf(out_file.rdbuf());
-	cmd->execute();
-	cout.rdbuf(cout_buffer);
-	FreeCmdArray(arg_list,num_of_args);
-	free(cmd);
+    char* arg_list[COMMAND_MAX_ARGS+1];
+    int num_of_args=_parseCommandLine(GetCmdLine(),arg_list);
+    string redirection_sign;
+    string file_name;
+    if(type==APPEND){
+        redirection_sign=">>";
+    }
+    else{
+        redirection_sign=">";
+    }
+    for (int i = 1; i < num_of_args;i++) {
+        if (arg_list[i-1] == redirection_sign){
+            file_name=arg_list[i];
+            break;
+        }
+    }
+    ofstream out_file;
+    //TODO: make sure the file exist!
+    if(type==APPEND){
+        out_file=ofstream(file_name,ofstream::out|ofstream::app);
+    }
+    else{
+        out_file=ofstream(file_name,ofstream::out|ofstream::trunc);
+    }
+    streambuf* cout_buffer = cout.rdbuf();
+    cout.rdbuf(out_file.rdbuf());
+    cmd->execute();
+    cout.rdbuf(cout_buffer);
+    FreeCmdArray(arg_list,num_of_args);
+    free(cmd);
 }
+
+
+/*-------------------------Command Copy----------------------------------*/
+CopyCommand::CopyCommand(const char* cmd_line, JobsList* jobs): Command(cmd_line){
+    this->jobs = jobs;
+};
+
+
+
+//make sure to handle signals and kill option
+void CopyCommand::execute(){
+
+    int num_of_args;
+    char* arg_list[COMMAND_MAX_ARGS + 1];
+    num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
+
+    int* file_to_read = new int;
+    int* file_to_write = new int;
+    int* status = new int;
+    int* status_for_shell = new int;
+
+    pid_t pid = fork();
+
+    if (pid>0){ //Shell - TODO: make sure this is ok
+        int last_arg_size = strlen(arg_list[num_of_args-1]);
+        if (string(arg_list[num_of_args-1])=="&" || arg_list[num_of_args-1][last_arg_size-1]=='&'){
+            CommandForJobList* temp = new CommandForJobList(GetCmdLine(), pid); //run in the background
+            jobs->addJob(temp);
+        }
+        else{
+            waitpid(pid, status_for_shell, 0);
+        }
+        FreeCmdArray(arg_list, num_of_args);
+        return;
+    }
+    else { //copy parent
+
+        setpgrp();
+
+        //----------------------------------open reading file-------------------------------//
+        pid_t pid_open_to_read = fork();
+        if (pid_open_to_read == 0) { //child - open
+            setpgrp();
+            *file_to_read = open(arg_list[1], O_RDONLY);
+            if (*file_to_read == -1) { //didn't open correctly
+                perror("smash error: cp failed\n");
+                exit(0);
+            }
+            exit(1);
+        }
+
+
+        //parent - main process
+
+        waitpid(pid_open_to_read, status, 0);
+        //if didn't open correctly
+        if (!(*status)) {
+            delete file_to_read;
+            delete file_to_write;
+            delete status;
+            FreeCmdArray(arg_list, num_of_args);
+            exit(0);
+        }
+        //----------------------------------open writing file-------------------------------//
+
+        pid_t pid_open_to_write = fork();
+        if (pid_open_to_write == 0) { //child - open
+            setpgrp();
+            *file_to_read = open(arg_list[2], O_RDWR | O_CREAT, 0600);
+            if (*file_to_write == -1) { //didn't open correctly
+                perror("smash error: cp failed\n");
+                exit(0);
+            }
+            exit(1);
+        }
+
+
+        //parent - main process
+
+        waitpid(pid_open_to_write, status, 0);
+        //if didn't open correctly
+        if (!(*status)) {
+            close(*file_to_read);
+            //TODO: should I check if it closed properly?
+            delete file_to_read;
+            delete file_to_write;
+            delete status;
+            FreeCmdArray(arg_list, num_of_args);
+            exit(0);
+        }
+
+        //----------------------------------read and write file-------------------------------//
+
+
+        pid_t pid_read_and_write = fork();
+        if (pid_read_and_write == 0) { //child - read
+            setpgrp();
+
+            int total_read_so_far = 0;
+            int current_read = 0;
+            char* buf = new char[101];
+
+            //TODO: Need to be tested to make sure the offest is saved from read to read. if not saved can use lseek
+            while ((current_read = read(*file_to_read, buf, 100)) && current_read > 0) {
+                *status = write(*file_to_write, buf, 100);
+                total_read_so_far+=current_read;
+                if (*status == -1){
+                    perror("smash error: cp failed\n");
+                    delete[] buf;
+                    exit(0);
+                }
+            }
+
+            if (current_read == -1){ //reading has failed
+                perror("smash error: cp failed\n");
+                delete[] buf;
+                exit(0);
+            }
+            delete[] buf;
+            exit(1);
+        }
+
+        //parent - main process
+
+        waitpid(pid_read_and_write, status, 0);
+
+        close(*file_to_read);
+        close(*file_to_write);
+        //TODO: should I check if it closed properly?
+        delete file_to_read;
+        delete file_to_write;
+        FreeCmdArray(arg_list, num_of_args);
+
+        if (!(*status)) {
+            delete status;
+            exit(0);
+        }
+        delete status;
+        exit(1);
+    }
+
+}
+
+/*========================================================================*/
+/*===========================Built In Commands============================*/
+/*========================================================================*/
+
+/*---------------------BuiltInCommand Class Functions---------------------*/
+BuiltInCommand::BuiltInCommand():Command(){}
+
+BuiltInCommand::BuiltInCommand(const char* cmd_line):Command(cmd_line){}
+
 
 /*-------------------------BuiltInCommand ChangePrompt--------------------*/
 ChangePromptCommand::ChangePromptCommand(std::string* prompt,string new_prompt):
@@ -949,6 +1174,9 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 	}
 	else if(first_word=="quit"){
 		cmd=new QuitCommand(cmd_line,job_list);
+	}
+	else if(first_word=="cp"){
+	    cmd=new CopyCommand(cmd_line);
 	}
 	else{
 	    //external command will include the case that there is no command to execute
