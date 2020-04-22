@@ -538,6 +538,9 @@ void CopyCommand::execute(){
 
 }
 
+/*-----------------------BuiltIn Command Timeout---------------------------*/
+
+
 /*========================================================================*/
 /*===========================Built In Commands============================*/
 /*========================================================================*/
@@ -1133,13 +1136,11 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 	else if(first_word=="quit"){
 		cmd=new QuitCommand(cmd_line,job_list);
 	}
-<<<<<<< Updated upstream
-	else if(first_word=="cp"){
-	    cmd=new CopyCommand(cmd_line);
-=======
+	else if(first_word=="cp") {
+        cmd = new CopyCommand(cmd_line, job_list);
+    }
 	else if(first_word=="timeout"){
-		cmd=new TimeoutCommand();
->>>>>>> Stashed changes
+		cmd=new TimeoutCommand(cmd_line);
 	}
 	else{
 	    //external command will include the case that there is no command to execute

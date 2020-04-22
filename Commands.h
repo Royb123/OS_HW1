@@ -141,6 +141,13 @@ public:
     void execute() override;
 };
 
+class TimeoutCommand : public BuiltInCommand {
+public:
+    TimeoutCommand(const char* cmd_line);
+    virtual ~TimeoutCommand() {}
+    void execute() override;
+};
+
 class ChangePromptCommand : public BuiltInCommand {
     std::string* prompt_name;
     std::string new_prompt;
@@ -216,54 +223,8 @@ public:
     virtual ~QuitCommand()= default;
     void execute() override;
 };
-<<<<<<< Updated upstream
 
 
-=======
-/*
-class CommandsHistory {
- protected:
-  class CommandHistoryEntry {
-	  // TODO: Add your data members
-  };
- // TODO: Add your data members
- public:
-  CommandsHistory();
-  ~CommandsHistory() {}
-  void addRecord(const char* cmd_line);
-  void printHistory();
-};
-
-class HistoryCommand : public BuiltInCommand {
- // TODO: Add your data members
- public:
-  HistoryCommand(const char* cmd_line, CommandsHistory* history);
-  virtual ~HistoryCommand() {}
-  void execute() override;
-};
-*/
-
-
-
-
-
-
-
-// TODO: should it really inhirit from BuiltInCommand ?
-class CopyCommand : public BuiltInCommand {
-public:
-    CopyCommand(const char* cmd_line);
-    virtual ~CopyCommand() {}
-    void execute() override;
-};
-
-
-class TimeoutCommand : public BuiltInCommand {
-public:
-    TimeoutCommand(const char* cmd_line);
-    virtual ~TimeoutCommand() {}
-    void execute() override;
-};
 class TimeoutEntry {
     const int jobid;
     Command* command;
