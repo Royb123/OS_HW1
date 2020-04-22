@@ -291,7 +291,6 @@ public:
     time_t GetFinishTime(){ return finish_time; }
     Command* GetCommand(){ return command; }
 };
->>>>>>> Stashed changes
 
 
 class SmallShell {

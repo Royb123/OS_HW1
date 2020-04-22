@@ -213,7 +213,7 @@ void ExternalCommand::execute(){
         perror("smash error: fork failed\n");
     }
     if (pid == 0) { //child
-<<<<<<< Updated upstream
+        setpgrp();
     	if(GetBackground()){
 			execl("/bin/bash", "bash", "-c", cmd_without_bck, NULL);
 
@@ -232,21 +232,6 @@ void ExternalCommand::execute(){
         }
         int status;
         waitpid(pid,&status,0);
-=======
-        setpgrp();
-        execl("/bin/bash", "bash", "-c", GetCmdLine(), NULL);
-    }
-    else { //parent
-        int last_arg_size = strlen(arg_list[num_of_args-1]);
-        if (string(arg_list[num_of_args-1])=="&" || arg_list[num_of_args-1][last_arg_size-1]=='&'){
-            CommandForJobList* temp = new CommandForJobList(GetCmdLine(), pid);
-            jobs->addJob(temp);
-        }
-        else{
-            waitpid(pid, nullptr, 0);
-        }
-
->>>>>>> Stashed changes
     }
 
     FreeCmdArray(arg_list,num_of_args);
