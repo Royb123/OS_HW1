@@ -25,7 +25,6 @@ class Command {
 public:
     Command();
     explicit Command(const char* cmd_line);
-    explicit Command(const char* cmd_line, pid_t pid);
     virtual ~Command();
     virtual void execute() = 0;
     //virtual void prepare();
@@ -142,11 +141,11 @@ public:
     void execute() override;
 };
 
-class CommandForJobList : public Command{
+class TimeoutCommand : public BuiltInCommand {
 public:
-    CommandForJobList(const char* cmd_line, pid_t pid): Command(GetCmdLine(), pid){};
-    virtual ~CommandForJobList();
-    void execute() override{return;};
+    TimeoutCommand(const char* cmd_line);
+    virtual ~TimeoutCommand() {}
+    void execute() override;
 };
 
 class ChangePromptCommand : public BuiltInCommand {

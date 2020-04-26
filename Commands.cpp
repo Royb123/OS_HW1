@@ -208,12 +208,6 @@ Command::~Command(){
 	delete cmd_str;
 }
 
-Command::Command(const char* cmd_line, pid_t pid): pid(pid){
-    cmd_str = new string(cmd_line);
-    this->cmd_line = cmd_str->c_str();
-}
-
-
 /*========================================================================*/
 /*===========================External Commands============================*/
 /*========================================================================*/
@@ -225,7 +219,7 @@ ExternalCommand::ExternalCommand(const char* cmd_line, JobsList* jobs):Command(c
 	num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
 	size_t last_arg_size = strlen(arg_list[num_of_args-1]);
 	if(string(arg_list[num_of_args-1])=="&" || arg_list[num_of_args-1][last_arg_size-1]=='&'){
-	ChangeBackground();
+	    ChangeBackground();
 	}
 	if(GetBackground()){
 		cmd_without_bck=CopyCmd(GetCmdLine()); //drop the &
@@ -258,17 +252,17 @@ void ExternalCommand::execute(){
     }
     if (pid == 0) { //child
         setpgrp();
-    	if(GetBackground()){
+        if(GetBackground()){ //suppose to run in the background
 			execl("/bin/bash", "bash", "-c", cmd_without_bck, NULL);
 
     	}
-    	else{
+    	else{//not in the background
 			execl("/bin/bash", "bash", "-c", GetCmdLine(), NULL);
     	}
 
     }
-    else { //parent
-		ChangePID(pid);
+    else { //parent - shell
+		ChangePID(pid); //of class external command
         if (GetBackground()){
 			FreeCmdArray(arg_list,num_of_args);
             jobs->addJob(this,false);
@@ -415,8 +409,6 @@ void RedirectionCommand::execute() {
 CopyCommand::CopyCommand(const char* cmd_line, JobsList* jobs): Command(cmd_line){
     this->jobs = jobs;
 }
-
-
 
 //make sure to handle signals and kill option
 void CopyCommand::execute(){
@@ -860,11 +852,7 @@ void BackgroundCommand::execute() {
 		job = job_list->getLastStoppedJob(&jobID);
 		if (job == nullptr) {
 			std::cout << "smash error: bg: there is no stopped jobs to resume\n";
-			for (int i = 0; i <= COMMAND_MAX_ARGS; i++) {
-				if (arg_list[i] == NULL) break;
-				std::free(arg_list[i]);
-				return;
-			}
+            FreeCmdArray(arg_list,num_of_args);
 		}
 
 		res = job_list->ExecuteSignal(jobID, SIGCONT);
