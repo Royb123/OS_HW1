@@ -408,6 +408,10 @@ void RedirectionCommand::execute() {
 /*-------------------------Command Copy----------------------------------*/
 CopyCommand::CopyCommand(const char* cmd_line, JobsList* jobs): Command(cmd_line){
     this->jobs = jobs;
+    if (_isBackgroundComamnd(cmd_line)){
+        this->ChangeBackground();
+    }
+
 }
 
 //make sure to handle signals and kill option
@@ -415,64 +419,90 @@ void CopyCommand::execute(){
 
     int num_of_args;
     char* arg_list[COMMAND_MAX_ARGS + 1];
-    num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
 
-    int* file_to_read = new int;
-    int* file_to_write = new int;
-    int* status = new int;
-    int* status_for_shell = new int;
+    if(_isBackgroundComamnd(GetCmdLine())) {
+        char *new_cmd_line = CopyCmd(GetCmdLine());
+        _removeBackgroundSign(new_cmd_line);
+        num_of_args = _parseCommandLine(new_cmd_line, arg_list);
+
+        delete[] new_cmd_line;
+    }
+    else{
+        num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
+    }
 
     pid_t pid = fork();
     if (pid==-1){
-        perror("smash error: fork failed\n");
+        perror("smash error: fork failed");
         return;
     }
     if (pid>0){ //Shell - TODO: make sure this is ok
-        int last_arg_size = strlen(arg_list[num_of_args-1]);
+        /*int last_arg_size = strlen(arg_list[num_of_args-1]);
         if (string(arg_list[num_of_args-1])=="&" || arg_list[num_of_args-1][last_arg_size-1]=='&'){
             //CommandForJobList* temp = new CommandForJobList(GetCmdLine(), pid); //run in the background
             jobs->addJob(this);
+        }*/
+        if(_isBackgroundComamnd(GetCmdLine())){
+            jobs->addJob(this);
         }
         else{
-            waitpid(pid, status_for_shell, 0);
+            int status;
+            //waitpid(pid, nullptr, 0);
+            waitpid(pid,&status,WUNTRACED);
+            if(WIFSTOPPED(status)){
+                ChangeBackground();
+                jobs->addJob(this,true);
+            }
         }
-        FreeCmdArray(arg_list, num_of_args);
+        //FreeCmdArray(arg_list, num_of_args);
         return;
     }
     else { //copy parent
 
         setpgrp();
 
+        int* file_to_read = new int;
+        int* file_to_write = new int;
+        int* status = new int;
+
+
         //----------------------------------open reading file-------------------------------//
         *file_to_read = open(arg_list[1], O_RDONLY);
         if (*file_to_read == -1) { //didn't open correctly
-            perror("smash error: open failed\n");
+            std::cerr<<"file_to_read didn't open correctly\n";
+            perror("smash error: open failed");
             delete file_to_read;
             delete file_to_write;
             delete status;
-            delete status_for_shell;
             FreeCmdArray(arg_list, num_of_args);
             exit(0);
+        }
+        else{
+            std::cerr<<"file_to_read opened correctly\n";
         }
 
 
         //----------------------------------open writing file-------------------------------//
 
-        *file_to_read = open(arg_list[2], O_RDWR | O_CREAT | O_TRUNC, 0600);
+        *file_to_write = open(arg_list[2], O_RDWR | O_CREAT | O_TRUNC, 0600);
         if (*file_to_write == -1) { //didn't open correctly
-            perror("smash error: open failed\n");
+            std::cerr<<"file_to_write didn't open correctly\n";
+            perror("smash error: open failed");
             delete file_to_write;
             FreeCmdArray(arg_list, num_of_args);
-            *status = close(*file_to_read);
-            if (*status == -1) {
-
+            /**status = */close(*file_to_read);
+            delete file_to_read;
+            /*if (*status == -1) {
+                delete status;
+                std::cerr<<"file_to_read didn't close correctly in -open writing file-\n";
                 exit(2);
 
-            }
-            delete file_to_read;
+            }*/
             delete status;
-            delete status_for_shell;
             exit(0);
+        }
+        else{
+            std::cerr<<"file_to_write opened correctly\n";
         }
 
 
@@ -480,52 +510,71 @@ void CopyCommand::execute(){
 
         int total_read_so_far = 0;
         int current_read = 0;
-        char* buf [101];
+        int lseek_read_result = 0;
+        int lseek_write_result = 0;
+        char buf [101];
 
-        //TODO: Need to be tested to make sure the offest is saved from read to read. if not saved can use lseek
-        while ((current_read = read(*file_to_read, buf, 100)) && current_read > 0) {
-            *status = write(*file_to_write, buf, 100);
+        while ((current_read = read(*file_to_read, buf, 100)) && current_read > 0 ){
             total_read_so_far += current_read;
+            std::cerr<<"current_read is " << current_read << "\n";
+            std::cerr<<"total_read_so_far is " << total_read_so_far << "\n";
+            current_read < 100 ? *status = write(*file_to_write, buf, current_read): *status = write(*file_to_write, buf, 100);
             if (*status == -1) {
-                perror("smash error: write failed\n");
+                perror("smash error: write failed");
                 close(*file_to_read);
                 close(*file_to_write);
                 delete file_to_read;
                 delete file_to_write;
                 FreeCmdArray(arg_list, num_of_args);
                 delete status;
-                delete status_for_shell;
+                std::cerr<<"write failed after reading" << total_read_so_far << "bytes\n";
                 exit(1);
 
             }
-        }
+            lseek_read_result = lseek(*file_to_read, total_read_so_far, SEEK_SET);
+            lseek_write_result = lseek(*file_to_write, total_read_so_far, SEEK_SET);
+            if (lseek_read_result == -1 || lseek_write_result == -1){
+                perror("smash error: lseek failed");
+                close(*file_to_read);
+                close(*file_to_write);
+                delete file_to_read;
+                delete file_to_write;
+                FreeCmdArray(arg_list, num_of_args);
+                delete status;
+                std::cerr<<"lseek failed after reading" << total_read_so_far << "bytes.\n lseek_read_result == "<< lseek_read_result << " and lseek_write_result == " << lseek_write_result << "\n";
+                exit(1);
+            }
 
+        }
+        std::cerr<<"total_read_so_far is " << total_read_so_far << "\n";
         if (current_read == -1){ //reading has failed
-            perror("smash error: read failed\n");
+            perror("smash error: read failed");
+            std::cerr<<"read failed after reading" << total_read_so_far << "bytes\n";
             close(*file_to_read);
             close(*file_to_write);
             delete file_to_read;
             delete file_to_write;
             FreeCmdArray(arg_list, num_of_args);
             delete status;
-            delete status_for_shell;
             exit(1);
         }
-    *status = close(*file_to_read);
-    if(*status == -1){
-        perror("smash error: close failed\n");
-    }
-    *status = close(*file_to_write);
-    if(*status == -1){
-        perror("smash error: close failed\n");
-    }
-    delete file_to_read;
-    delete file_to_write;
-    FreeCmdArray(arg_list, num_of_args);
-    delete status_for_shell;
-    delete status;
-    std::cout << "smash: " << arg_list[1] <<" was copied to " << arg_list[2] << "\n";
-    exit(1);
+        *status = close(*file_to_read);
+        if(*status == -1){
+            perror("smash error: close failed");
+            std::cerr<<"close file_to_read failed\n";
+        }
+        *status = close(*file_to_write);
+        if(*status == -1){
+            perror("smash error: close failed");
+            std::cerr<<"close file_to_write failed\n";
+        }
+        delete file_to_read;
+        delete file_to_write;
+        delete status;
+        std::cout << "smash: " << arg_list[1] <<" was copied to " << arg_list[2] << "\n";
+        FreeCmdArray(arg_list, num_of_args);
+        std::cerr<<"finished successfully\n";
+        exit(1);
 
     }
 

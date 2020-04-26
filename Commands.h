@@ -141,13 +141,6 @@ public:
     void execute() override;
 };
 
-class TimeoutCommand : public BuiltInCommand {
-public:
-    TimeoutCommand(const char* cmd_line);
-    virtual ~TimeoutCommand() {}
-    void execute() override;
-};
-
 class ChangePromptCommand : public BuiltInCommand {
     std::string* prompt_name;
     std::string new_prompt;
@@ -282,6 +275,7 @@ public:
     void execute() override;
     Command* GetInternalCommand();
 };
+
 class SmallShell {
 private:
     JobsList* job_list;
