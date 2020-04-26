@@ -80,7 +80,7 @@ private:
 public:
     JobsList();
     ~JobsList();
-    void addJob(Command* cmd, bool isStopped = false);
+    JobEntry* addJob(Command* cmd, bool isStopped = false);
     void printJobsList();
     void killAllJobs();
     void removeFinishedJobs();
@@ -119,7 +119,7 @@ class PipeCommand : public Command {
     Command* cmd2;
 public:
     PipeCommand(const char* cmd_line,int type,Command* cmd1,Command* cmd2);
-    virtual ~PipeCommand() {}
+    virtual ~PipeCommand();
     void execute() override;
 };
 
@@ -224,79 +224,69 @@ public:
     virtual ~QuitCommand()= default;
     void execute() override;
 };
-<<<<<<< Updated upstream
 
+class TimeoutCommand;
 
-=======
-/*
-class CommandsHistory {
- protected:
-  class CommandHistoryEntry {
-	  // TODO: Add your data members
-  };
- // TODO: Add your data members
- public:
-  CommandsHistory();
-  ~CommandsHistory() {}
-  void addRecord(const char* cmd_line);
-  void printHistory();
-};
-
-class HistoryCommand : public BuiltInCommand {
- // TODO: Add your data members
- public:
-  HistoryCommand(const char* cmd_line, CommandsHistory* history);
-  virtual ~HistoryCommand() {}
-  void execute() override;
-};
-*/
-
-
-
-
-
-
-
-// TODO: should it really inhirit from BuiltInCommand ?
-class CopyCommand : public BuiltInCommand {
+class TimeoutList{
 public:
-    CopyCommand(const char* cmd_line);
-    virtual ~CopyCommand() {}
+    class TimeoutEntry {
+        int jobid;
+        TimeoutCommand* command;
+        time_t start_time;
+        time_t finish_time;
+        int duration;
+        bool background;
+    public:
+        TimeoutEntry(TimeoutCommand* cmd,int duration,bool back):
+        duration(duration){
+            jobid=-1;
+            background=back;
+            command = cmd;
+            start_time = time(nullptr); //TODO: handle errors
+            finish_time= start_time+duration;
+        }
+        ~TimeoutEntry() = default;
+        int GetJobID(){return jobid;}
+        time_t GetStartTime(){ return start_time; }
+        bool GetBackGround(){return background;}
+        time_t GetDuration(){ return duration; }
+        time_t GetFinishTime(){ return finish_time;}
+        TimeoutCommand* GetCommand(){ return command; }
+        void ChangeJobID(int new_id){jobid=new_id;}
+        void ChangeBackground(){
+            if(background){
+                background=false;
+            }
+            else{
+                background=true;
+            }
+        }
+    };
+private:
+    std::vector<TimeoutEntry*> timeout_list;
+
+public:
+    TimeoutList();
+    ~TimeoutList();
+    TimeoutEntry* addTimedJob(TimeoutCommand* cmd, int duration);
+    void removeTimedJob();
+    TimeoutEntry* GetFirstEntry();
+};
+
+class TimeoutCommand : public Command {
+    JobsList* jobs;
+    Command* cmd;
+    TimeoutList* times;
+public:
+    TimeoutCommand(const char* cmd_line, Command* cmd, JobsList* jobslst,TimeoutList* t_list);
+    virtual ~TimeoutCommand();
     void execute() override;
+    Command* GetInternalCommand();
 };
-
-
-class TimeoutCommand : public BuiltInCommand {
-public:
-    TimeoutCommand(const char* cmd_line);
-    virtual ~TimeoutCommand() {}
-    void execute() override;
-};
-class TimeoutEntry {
-    const int jobid;
-    Command* command;
-    time_t start_time;
-    time_t finish_time;
-    int duration;
-public:
-    TimeoutEntry(int ID,Command* cmd,int duration) : jobid(ID),duration(duration){
-        command = cmd;
-        start_time = time(nullptr); //TODO: handle errors
-        finish_time= start_time+duration;
-    }
-    ~TimeoutEntry() = default;
-    int GetJobID(){ return jobid; }
-    time_t GetStartTime(){ return start_time; }
-    time_t GetDuration(){ return duration; }
-    time_t GetFinishTime(){ return finish_time; }
-    Command* GetCommand(){ return command; }
-};
-
-
 class SmallShell {
 private:
     JobsList* job_list;
-    std::vector<TimeoutEntry*>* timeout_commands;
+    TimeoutList* timeout_commands;
     std::string prompt_name;
     char* old_pwd;
     char* curr_pwd;
@@ -320,6 +310,7 @@ public:
     pid_t GetPID(){return pid;};
     JobsList* GetJobList(){return job_list;}; //TODO: maybe create interface
     Command* GetCurrCmd(){return current_cmd;};
+    TimeoutList* GetTimeoutList(){return timeout_commands;};
 };
 
 #endif //SMASH_COMMAND_H_
