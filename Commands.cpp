@@ -754,6 +754,7 @@ void CopyCommand::execute(){
         return;
     }
     if (pid>0){ //Shell
+        ChangePID(pid);
         if(_isBackgroundComamnd(GetCmdLine())){
             jobs->addJob(this);
         }

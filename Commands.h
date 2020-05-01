@@ -69,6 +69,7 @@ public:
         ~JobEntry() = default;
         int GetJobID() { return jobid; }
         time_t GetStartTime() { return start_time; }
+        void SetNewStartTime(){start_time=time(nullptr);};
         Command* GetCommand() { return command; }
         bool isStopped() { return stopped; }
         void ChangeStoppedStatus(){

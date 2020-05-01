@@ -42,6 +42,11 @@ void ctrlZHandler(int sig_num) {
         new_stopped_cmd->IncCounter();
 
     }
+    else{
+        int jobid=new_stopped_cmd->GetJobID();
+        JobsList::JobEntry* entry = jobs->getJobById(jobid);
+        entry->SetNewStartTime();
+    }
     std::cout << "smash: process "<< pid << " was stopped\n";
 }
 
