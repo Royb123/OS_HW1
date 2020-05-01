@@ -290,6 +290,7 @@ public:
     void execute() override;
     Command* GetInternalCommand();
 };
+
 class SmallShell {
 private:
     JobsList* job_list;
