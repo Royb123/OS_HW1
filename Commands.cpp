@@ -630,30 +630,141 @@ void CopyCommand::execute(){
     else{
         num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
     }
+
+    //------------------------------check if both files are the same----------------------------//
+    bool same_files = false;
+    if (string(arg_list[1])==string(arg_list[0])){
+        same_files = true;
+    }
+    else {
+        char *pwd = nullptr;
+        pwd = get_current_dir_name();
+        int pwd_size = string(pwd).size() + 1;
+        char *new_path = nullptr;
+        //handling arg[1]
+        int arg_size = string(arg_list[1]).size() + 1;
+        if (arg_list[1][0] == '.' && arg_list[1][1] == '/') {
+            new_path = new char[pwd_size + arg_size - 2];
+            for (int i = 0; i < pwd_size - 1; i++) {
+                new_path[i] = pwd[i];
+            }
+            for (int i = 0; i < arg_size - 1; i++) {
+                new_path[pwd_size + i] = arg_list[1][i + 1];
+            }
+        }else if(arg_list[1][0] == '.'){
+                new_path = new char[pwd_size + arg_size - 1];
+                for (int i = 0; i < pwd_size - 1; i++) {
+                    new_path[i] = pwd[i];
+                }
+                new_path[pwd_size-1] = '/';
+                for (int i = 0; i < arg_size - 1; i++) {
+                    new_path[pwd_size + i] = arg_list[1][i + 1];
+                }
+        } else {
+
+            char* check_if_is_path = new char[pwd_size];
+            for (int i = 0; i < pwd_size - 1; i++) {
+                check_if_is_path[i] = arg_list[1][i];
+            }
+            check_if_is_path[pwd_size - 1] = pwd[pwd_size - 1];
+            if (string(check_if_is_path) == string(pwd)) {
+                new_path = new char[arg_size];
+                for (int i = 0; i < arg_size; i++) {
+                    new_path[i] = arg_list[1][i];
+                }
+            } else {
+                new_path = new char[pwd_size + arg_size];
+                for (int i = 0; i < pwd_size - 1; i++) {
+                    new_path[i] = pwd[i];
+                }
+                new_path[pwd_size-1] = '/';
+                for (int i = 0; i < arg_size; i++) {
+                    new_path[pwd_size + i] = arg_list[1][i];
+                }
+            }
+            delete[] check_if_is_path;
+        }
+
+        //handling arg[2]
+        char *new_second_path = nullptr;
+        arg_size = string(arg_list[2]).size() + 1;
+        if (arg_list[2][0] == '.' && arg_list[2][1] == '/') {
+            new_second_path = new char[pwd_size + arg_size - 2];
+            for (int i = 0; i < pwd_size - 1; i++) {
+                new_second_path[i] = pwd[i];
+            }
+            for (int i = 0; i < arg_size - 1; i++) {
+                new_second_path[pwd_size-1 + i] = arg_list[2][i + 1];
+            }
+        }else if(arg_list[2][0] == '.'){
+            new_second_path = new char[pwd_size + arg_size - 1];
+            for (int i = 0; i < pwd_size - 1; i++) {
+                new_path[i] = pwd[i];
+            }
+            new_path[pwd_size-1] = '/';
+            for (int i = 0; i < arg_size - 1; i++) {
+                new_path[pwd_size + i] = arg_list[2][i + 1];
+            }
+        } else {
+
+            char* check_if_is_path = new char[pwd_size];
+            for (int i = 0; i < pwd_size - 1; i++) {
+                check_if_is_path[i] = arg_list[2][i];
+            }
+            check_if_is_path[pwd_size - 1] = pwd[pwd_size - 1];
+            if (string(check_if_is_path) == string(pwd)) {
+                new_second_path = new char[arg_size];
+                for (int i = 0; i < arg_size; i++) {
+                    new_second_path[i] = arg_list[2][i];
+                }
+            } else {
+                new_second_path = new char[pwd_size + arg_size];
+                for (int i = 0; i < pwd_size - 1; i++) {
+                    new_second_path[i] = pwd[i];
+                }
+                new_second_path[pwd_size-1] = '/';
+                for (int i = 0; i < arg_size; i++) {
+                    new_second_path[pwd_size + i] = arg_list[2][i];
+                }
+            }
+            delete[] check_if_is_path;
+        }
+        if (string(new_path)==string(new_second_path)){
+            same_files = true;
+        }
+
+        free(pwd);
+        delete[] new_path;
+        delete [] new_second_path;
+    }
+
+
+    if(same_files) {
+        std::cout << "smash: " << arg_list[1] <<" was copied to " << arg_list[2] << "\n";
+        FreeCmdArray(arg_list, num_of_args);
+        return;
+    }
+
+    //------------------------------if files are different----------------------------//
+
+
     pid_t pid = fork();
     if (pid==-1){
         perror("smash error: fork failed");
         return;
     }
-    if (pid>0){ //Shell - TODO: make sure this is ok
-        /*int last_arg_size = strlen(arg_list[num_of_args-1]);
-        if (string(arg_list[num_of_args-1])=="&" || arg_list[num_of_args-1][last_arg_size-1]=='&'){
-            //CommandForJobList* temp = new CommandForJobList(GetCmdLine(), pid); //run in the background
-            jobs->addJob(this);
-        }*/
+    if (pid>0){ //Shell
         if(_isBackgroundComamnd(GetCmdLine())){
             jobs->addJob(this);
         }
         else{
             int status;
-            //waitpid(pid, nullptr, 0);
             waitpid(pid,&status,WUNTRACED);
             if(WIFSTOPPED(status)){
                 ChangeBackground();
                 jobs->addJob(this,true);
             }
         }
-        //FreeCmdArray(arg_list, num_of_args);
         return;
     }
     else { //copy parent
@@ -668,16 +779,12 @@ void CopyCommand::execute(){
         //----------------------------------open reading file-------------------------------//
         *file_to_read = open(arg_list[1], O_RDONLY);
         if (*file_to_read == -1) { //didn't open correctly
-            std::cerr<<"file_to_read didn't open correctly\n";
             perror("smash error: open failed");
             delete file_to_read;
             delete file_to_write;
             delete status;
             FreeCmdArray(arg_list, num_of_args);
             exit(0);
-        }
-        else{
-            std::cerr<<"file_to_read opened correctly\n";
         }
 
 
@@ -685,23 +792,13 @@ void CopyCommand::execute(){
 
         *file_to_write = open(arg_list[2], O_RDWR | O_CREAT | O_TRUNC, 0600);
         if (*file_to_write == -1) { //didn't open correctly
-            std::cerr<<"file_to_write didn't open correctly\n";
             perror("smash error: open failed");
             delete file_to_write;
             FreeCmdArray(arg_list, num_of_args);
-            /**status = */close(*file_to_read);
+            close(*file_to_read);
             delete file_to_read;
-            /*if (*status == -1) {
-                delete status;
-                std::cerr<<"file_to_read didn't close correctly in -open writing file-\n";
-                exit(2);
-
-            }*/
             delete status;
             exit(0);
-        }
-        else{
-            std::cerr<<"file_to_write opened correctly\n";
         }
 
 
@@ -715,8 +812,6 @@ void CopyCommand::execute(){
 
         while ((current_read = read(*file_to_read, buf, 100)) && current_read > 0 ){
             total_read_so_far += current_read;
-            std::cerr<<"current_read is " << current_read << "\n";
-            std::cerr<<"total_read_so_far is " << total_read_so_far << "\n";
             current_read < 100 ? *status = write(*file_to_write, buf, current_read): *status = write(*file_to_write, buf, 100);
             if (*status == -1) {
                 perror("smash error: write failed");
@@ -726,7 +821,6 @@ void CopyCommand::execute(){
                 delete file_to_write;
                 FreeCmdArray(arg_list, num_of_args);
                 delete status;
-                std::cerr<<"write failed after reading" << total_read_so_far << "bytes\n";
                 exit(1);
 
             }
@@ -740,15 +834,12 @@ void CopyCommand::execute(){
                 delete file_to_write;
                 FreeCmdArray(arg_list, num_of_args);
                 delete status;
-                std::cerr<<"lseek failed after reading" << total_read_so_far << "bytes.\n lseek_read_result == "<< lseek_read_result << " and lseek_write_result == " << lseek_write_result << "\n";
                 exit(1);
             }
 
         }
-        std::cerr<<"total_read_so_far is " << total_read_so_far << "\n";
         if (current_read == -1){ //reading has failed
             perror("smash error: read failed");
-            std::cerr<<"read failed after reading" << total_read_so_far << "bytes\n";
             close(*file_to_read);
             close(*file_to_write);
             delete file_to_read;
@@ -760,19 +851,16 @@ void CopyCommand::execute(){
         *status = close(*file_to_read);
         if(*status == -1){
             perror("smash error: close failed");
-            std::cerr<<"close file_to_read failed\n";
         }
         *status = close(*file_to_write);
         if(*status == -1){
             perror("smash error: close failed");
-            std::cerr<<"close file_to_write failed\n";
         }
         delete file_to_read;
         delete file_to_write;
         delete status;
         std::cout << "smash: " << arg_list[1] <<" was copied to " << arg_list[2] << "\n";
         FreeCmdArray(arg_list, num_of_args);
-        std::cerr<<"finished successfully\n";
         exit(1);
 
     }
