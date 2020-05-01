@@ -17,11 +17,15 @@
 #define REGULAR (-1)
 
 class Command {
-// TODO: Add your data members
     const char* cmd_line;
     pid_t pid;
     bool background;
     std::string* cmd_str;
+    int stop_counter;
+    int jobID;
+protected:
+    bool is_pipe;
+    bool is_external;
 public:
     Command();
     explicit Command(const char* cmd_line);
@@ -29,8 +33,14 @@ public:
     virtual void execute() = 0;
     //virtual void prepare();
     //virtual void cleanup();
+    int GetCounter(){return stop_counter;};
+    void IncCounter(){stop_counter++;};
+    int GetJobID(){return jobID;};
+    void setJobID(int new_id){jobID=new_id;};
     const char* GetCmdLine(){return cmd_line;};
     const pid_t GetPID(){return pid;}
+    bool GetIsPipe(){return is_pipe;};
+    bool GetIsExternal(){return is_external;};
     bool GetBackground(){return background;};
     void ChangePID(pid_t new_pid){pid=new_pid;};
     void ChangeBackground(){
@@ -108,6 +118,7 @@ class ExternalCommand : public Command {
 public:
     ExternalCommand(const char* cmd_line, JobsList* jobs);
     virtual ~ExternalCommand();
+    void PrepForPipeOrTime();
     void execute() override;
 
 };
@@ -116,10 +127,14 @@ class PipeCommand : public Command {
     int type;
     Command* cmd1;
     Command* cmd2;
+    JobsList* jobs;
+    pid_t pids[4];
 public:
-    PipeCommand(const char* cmd_line,int type,Command* cmd1,Command* cmd2);
+    PipeCommand(const char* cmd_line,int type,Command* cmd1,Command* cmd2,JobsList* joblst);
     virtual ~PipeCommand();
     void execute() override;
+    Command* GetCmd1();
+    Command* GetCmd2();
 };
 
 class RedirectionCommand : public Command {
@@ -138,13 +153,6 @@ class CopyCommand : public Command {
 public:
     CopyCommand(const char* cmd_line, JobsList* jobs);
     virtual ~CopyCommand() {}
-    void execute() override;
-};
-
-class TimeoutCommand : public BuiltInCommand {
-public:
-    TimeoutCommand(const char* cmd_line);
-    virtual ~TimeoutCommand() {}
     void execute() override;
 };
 
@@ -308,6 +316,7 @@ public:
     std::string GetPromptName(){return prompt_name;};
     pid_t GetPID(){return pid;};
     JobsList* GetJobList(){return job_list;}; //TODO: maybe create interface
+    void ChangeCurrCmd(Command* cmd){current_cmd=cmd;};
     Command* GetCurrCmd(){return current_cmd;};
     TimeoutList* GetTimeoutList(){return timeout_commands;};
 };
