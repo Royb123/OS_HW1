@@ -122,25 +122,25 @@ char* CopyCmd(const char * cmd_line){
 int FindIfIO(const char* cmd_line){
 	int res=REGULAR;
 	string cmd_s=string(cmd_line);
-	unsigned long ind=cmd_s.find('|');
+	unsigned long ind=cmd_s.find("|&");;
 	if(ind!=string::npos){
-	    res=PIPE;
+	    res=PIPEERR;
 	    return res;
 	}
-    ind=cmd_s.find("|&");
+    ind=cmd_s.find('|');
     if(ind!=string::npos){
-        res=PIPEERR;
+        res=PIPE;
         return res;
+    }
+    ind=cmd_s.find(">>");
+    if(ind!=string::npos){
+        res=APPEND;
+        return res;
+
     }
     ind=cmd_s.find('>');
     if(ind!=string::npos){
         res=OVERRIDE;
-        return res;
-
-    }
-    ind=cmd_s.find('|');
-    if(ind!=string::npos){
-        res=APPEND;
         return res;
 
     }
@@ -1208,7 +1208,6 @@ void JobsList::removeFinishedJobs(){
 	}
 }
 void JobsList::printJobsList(){
-	removeFinishedJobs();
 	pid_t pid;
 	time_t start_time,now;
 	double duration;
@@ -1431,7 +1430,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     	}
     	else{
     		ind=cmd_s.find("|&");
-			cmd1_s=cmd_s.substr(0,ind-1);
+			cmd1_s=cmd_s.substr(0,ind);
 			cmd2_s=cmd_s.substr(ind+2,string::npos);
     	}
     	if(_isBackgroundComamnd(cmd_line)){
@@ -1523,6 +1522,7 @@ void SmallShell::executeCommand(const char *cmd_line) {
 	}
 	//TODO: remove finished jobs
 	current_cmd=cmd;
+    job_list->removeFinishedJobs();
 	current_cmd->execute();
 	current_cmd= nullptr;
 	if(cmd->GetBackground()){

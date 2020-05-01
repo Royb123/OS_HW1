@@ -25,8 +25,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Commands.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="168">
-              <caret line="1140" column="38" selection-start-line="1140" selection-start-column="38" selection-end-line="1140" selection-end-column="38" />
+            <state relative-caret-position="85">
+              <caret line="136" column="12" selection-start-line="136" selection-start-column="12" selection-end-line="136" selection-end-column="12" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
                 <element signature="e#256#403#0" expanded="true" />
@@ -61,8 +61,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/signals.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="481">
-              <caret line="95" column="44" selection-start-line="95" selection-start-column="44" selection-end-line="95" selection-end-column="44" />
+            <state relative-caret-position="192">
+              <caret line="39" column="8" lean-forward="true" selection-start-line="39" selection-start-column="8" selection-end-line="39" selection-end-column="35" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -95,8 +95,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>printjobs</find>
-      <find>Pipec</find>
       <find>removefin</find>
       <find>external</find>
       <find>WIFSTOPPED</find>
@@ -125,6 +123,8 @@
       <find>timeoutcom</find>
       <find>externalco</find>
       <find>smash error: waitpid</find>
+      <find>addJob</find>
+      <find>FindIfIO</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -228,12 +228,12 @@
       <workItem from="1588060084522" duration="22764000" />
       <workItem from="1588162798967" duration="16340000" />
       <workItem from="1588270778870" duration="6673000" />
-      <workItem from="1588326674788" duration="4257000" />
+      <workItem from="1588326674788" duration="6045000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="305085000" />
+    <option name="totallyTimeSpent" value="306873000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -246,14 +246,15 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1295" height="695" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.38299596" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.3285968" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.3285968" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.39964476" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.3285968" />
+      <window_info active="true" anchor="bottom" id="Debug" order="3" visible="true" weight="0.39964476" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" weight="0.3285968" />
@@ -282,8 +283,13 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/Commands.cpp</url>
-          <line>1311</line>
+          <line>1359</line>
           <option name="timeStamp" value="10" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/Commands.cpp</url>
+          <line>1406</line>
+          <option name="timeStamp" value="13" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
@@ -383,8 +389,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/signals.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="481">
-          <caret line="95" column="44" selection-start-line="95" selection-start-column="44" selection-end-line="95" selection-end-column="44" />
+        <state relative-caret-position="192">
+          <caret line="39" column="8" lean-forward="true" selection-start-line="39" selection-start-column="8" selection-end-line="39" selection-end-column="35" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>
@@ -393,8 +399,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Commands.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
-          <caret line="1140" column="38" selection-start-line="1140" selection-start-column="38" selection-end-line="1140" selection-end-column="38" />
+        <state relative-caret-position="85">
+          <caret line="136" column="12" selection-start-line="136" selection-start-column="12" selection-end-line="136" selection-end-column="12" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
             <element signature="e#256#403#0" expanded="true" />

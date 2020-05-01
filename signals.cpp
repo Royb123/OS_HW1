@@ -37,6 +37,7 @@ void ctrlZHandler(int sig_num) {
     JobsList* jobs=smash.GetJobList();
     Command* new_stopped_cmd=smash.GetCurrCmd();
     if(new_stopped_cmd->GetCounter()==0){
+        jobs->removeFinishedJobs();
         jobs->addJob(new_stopped_cmd,true);
         new_stopped_cmd->IncCounter();
 
