@@ -1053,6 +1053,11 @@ void KillCommand::execute() {
         FreeCmdArray(arg_list,num_of_args);
         return;
 	}
+	if (jobID<1){
+        std::cerr << "smash error: kill: job-id " << arg_list[2] << " does not exist\n";
+        FreeCmdArray(arg_list,num_of_args);
+        return;
+	}
 	if (num_of_args != 3 || arg_list[1][0] != '-'||(31<sig || sig<0)) { //checking input
 		std::cerr << "smash error: kill: invalid arguments\n";
         FreeCmdArray(arg_list,num_of_args);
@@ -1101,6 +1106,11 @@ void ForegroundCommand::execute() {
 			else {
 				//TODO: add function to remove last job so no error occurs!
 				JobsList::JobEntry* last_job = job_list->getLastJob(&jobID);
+                if (jobID<1){
+                    std::cerr << "smash error: fg: job-id " << args[2] << " does not exist\n";
+                    FreeCmdArray(args,num_of_args);
+                    return;
+                }
 				std::cout << last_job->GetCommand()->GetCmdLine() << " : " << jobPID << "\n";
                 smash.ChangeCurrCmd(last_job->GetCommand());
 				res=kill(jobPID, SIGCONT);
@@ -1192,6 +1202,11 @@ void BackgroundCommand::execute() {
             FreeCmdArray(arg_list,num_of_args);
 			return;
 		}
+        if (jobID<1){
+            std::cerr << "smash error: bg: job-id " << arg_list[2] << " does not exist\n";
+            FreeCmdArray(arg_list,num_of_args);
+            return;
+        }
 		job = job_list->getJobById(jobID);
 		if (!job) {
 			std::cerr << "smash error: bg: job-id " << jobID << " does not exist\n";
