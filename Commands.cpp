@@ -247,6 +247,7 @@ ExternalCommand::ExternalCommand(const char* cmd_line, JobsList* jobs):Command(c
 	size_t last_arg_size = strlen(arg_list[num_of_args-1]);
 	if(_isBackgroundComamnd(cmd_line)){
 	    ChangeBackground();
+	    IncCounter();
 	}
     cmd_without_bck=CopyCmd(GetCmdLine()); //drop the &
     _removeBackgroundSign(cmd_without_bck);
