@@ -316,8 +316,15 @@ public:
     void executeCommand(const char* cmd_line);
     std::string GetPromptName(){return prompt_name;};
     pid_t GetPID(){return pid;};
-    JobsList* GetJobList(){return job_list;}; //TODO: maybe create interface
+    JobsList* GetJobList(){return job_list;};
     void ChangeCurrCmd(Command* cmd){current_cmd=cmd;};
+    void ChangeCurrPwd(char* new_pwd){
+        if(!old_pwd){
+            delete old_pwd;
+        }
+        old_pwd=curr_pwd;
+        curr_pwd=new_pwd;
+    }
     Command* GetCurrCmd(){return current_cmd;};
     TimeoutList* GetTimeoutList(){return timeout_commands;};
 };

@@ -25,8 +25,13 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Commands.cpp">
           <provider selected="true" editor-type-id="text-editor">
+<<<<<<< Updated upstream
             <state relative-caret-position="137">
               <caret line="997" column="36" lean-forward="true" selection-start-line="997" selection-start-column="36" selection-end-line="997" selection-end-column="36" />
+=======
+            <state relative-caret-position="185">
+              <caret line="1461" column="27" selection-start-line="1461" selection-start-column="27" selection-end-line="1461" selection-end-column="27" />
+>>>>>>> Stashed changes
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
                 <element signature="e#256#403#0" expanded="true" />
@@ -39,7 +44,11 @@
         <entry file="file://$PROJECT_DIR$/Commands.h">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="192">
+<<<<<<< Updated upstream
               <caret line="320" column="10" selection-start-line="320" selection-start-column="10" selection-end-line="320" selection-end-column="10" />
+=======
+              <caret line="324" column="10" selection-start-line="324" selection-start-column="10" selection-end-line="324" selection-end-column="10" />
+>>>>>>> Stashed changes
             </state>
           </provider>
         </entry>
@@ -74,7 +83,11 @@
         <entry file="file://$PROJECT_DIR$/smash.cpp">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="153">
+<<<<<<< Updated upstream
               <caret line="22" column="4" selection-start-line="22" selection-start-column="4" selection-end-line="22" selection-end-column="50" />
+=======
+              <caret line="22" column="4" lean-forward="true" selection-start-line="22" selection-start-column="4" selection-end-line="22" selection-end-column="50" />
+>>>>>>> Stashed changes
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -95,11 +108,14 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
+<<<<<<< Updated upstream
       <find>pipe</find>
       <find>pipecom</find>
       <find>alarm</find>
       <find>addjob</find>
       <find>ParseTimeoutCmd</find>
+=======
+>>>>>>> Stashed changes
       <find>addTimeD</find>
       <find>ChangePromptCommand</find>
       <find>PIPEC</find>
@@ -124,7 +140,16 @@
       <find>printjobsli</find>
       <find>removefinis</find>
       <find>externalco</find>
+<<<<<<< Updated upstream
       <find>changedir</find>
+=======
+      <find>smallshell</find>
+      <find>changedirco</find>
+      <find>changedir</find>
+      <find>changedirc</find>
+      <find>Checkif</find>
+      <find>_removeBackgroundSign</find>
+>>>>>>> Stashed changes
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -228,12 +253,16 @@
       <workItem from="1588060084522" duration="22764000" />
       <workItem from="1588162798967" duration="16340000" />
       <workItem from="1588270778870" duration="6673000" />
-      <workItem from="1588326674788" duration="13003000" />
+      <workItem from="1588326674788" duration="20028000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
+<<<<<<< Updated upstream
     <option name="totallyTimeSpent" value="314020000" />
+=======
+    <option name="totallyTimeSpent" value="320856000" />
+>>>>>>> Stashed changes
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -288,13 +317,8 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/Commands.cpp</url>
-          <line>1462</line>
-          <option name="timeStamp" value="14" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/Commands.cpp</url>
-          <line>1452</line>
-          <option name="timeStamp" value="15" />
+          <line>889</line>
+          <option name="timeStamp" value="16" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
@@ -337,13 +361,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://C:/cygwin64/lib/gcc/x86_64-pc-cygwin/7.4.0/include/c++/bits/basic_string.h">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="87">
-          <caret line="6044" selection-start-line="6044" selection-end-line="6044" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://C:/cygwin64/lib/gcc/x86_64-pc-cygwin/7.4.0/include/c++/bits/stl_vector.h">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="87">
@@ -368,47 +385,76 @@
     <entry file="file://$PROJECT_DIR$/signals.h">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/smash.cpp">
+    <entry file="file://$PROJECT_DIR$/CMakeLists.txt">
       <provider selected="true" editor-type-id="text-editor">
+<<<<<<< Updated upstream
         <state relative-caret-position="153">
           <caret line="22" column="4" selection-start-line="22" selection-start-column="4" selection-end-line="22" selection-end-column="50" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>
+=======
+        <state relative-caret-position="68">
+          <caret line="4" column="30" selection-start-line="4" selection-start-column="30" selection-end-line="4" selection-end-column="30" />
+>>>>>>> Stashed changes
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/CMakeLists.txt">
+    <entry file="file://C:/cygwin64/lib/gcc/x86_64-pc-cygwin/7.4.0/include/c++/bits/basic_string.h">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="68">
-          <caret line="4" column="30" selection-start-line="4" selection-start-column="30" selection-end-line="4" selection-end-column="30" />
+        <state relative-caret-position="87">
+          <caret line="6044" selection-start-line="6044" selection-end-line="6044" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/Commands.h">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="192">
+<<<<<<< Updated upstream
           <caret line="320" column="10" selection-start-line="320" selection-start-column="10" selection-end-line="320" selection-end-column="10" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Commands.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="137">
-          <caret line="997" column="36" lean-forward="true" selection-start-line="997" selection-start-column="36" selection-end-line="997" selection-end-column="36" />
-          <folding>
-            <element signature="e#0#19#0" expanded="true" />
-            <element signature="e#256#403#0" expanded="true" />
-          </folding>
+=======
+          <caret line="324" column="10" selection-start-line="324" selection-start-column="10" selection-end-line="324" selection-end-column="10" />
+>>>>>>> Stashed changes
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/signals.cpp">
       <provider selected="true" editor-type-id="text-editor">
+<<<<<<< Updated upstream
+        <state relative-caret-position="137">
+          <caret line="997" column="36" lean-forward="true" selection-start-line="997" selection-start-column="36" selection-end-line="997" selection-end-column="36" />
+=======
         <state relative-caret-position="833">
           <caret line="88" selection-start-line="88" selection-end-line="88" />
+>>>>>>> Stashed changes
           <folding>
             <element signature="e#0#19#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/smash.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="153">
+          <caret line="22" column="4" lean-forward="true" selection-start-line="22" selection-start-column="4" selection-end-line="22" selection-end-column="50" />
+          <folding>
+            <element signature="e#0#19#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Commands.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+<<<<<<< Updated upstream
+        <state relative-caret-position="833">
+          <caret line="88" selection-start-line="88" selection-end-line="88" />
+=======
+        <state relative-caret-position="185">
+          <caret line="1461" column="27" selection-start-line="1461" selection-start-column="27" selection-end-line="1461" selection-end-column="27" />
+>>>>>>> Stashed changes
+          <folding>
+            <element signature="e#0#19#0" expanded="true" />
+            <element signature="e#256#403#0" expanded="true" />
           </folding>
         </state>
       </provider>

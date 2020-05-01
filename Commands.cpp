@@ -974,6 +974,7 @@ void ChangeDirCommand::execute() {
 	char* arg_list[COMMAND_MAX_ARGS + 1];
 	num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
 
+    SmallShell& smash = SmallShell::getInstance();
 	if(arg_list[1]== nullptr){
 	    FreeCmdArray(arg_list,num_of_args);
 	    return;
@@ -996,9 +997,8 @@ void ChangeDirCommand::execute() {
 		else {
 			int state = chdir(old_pwd);
 			if (state == 0) { //succeeded
-				char* temp = curr_pwd;
-				curr_pwd = old_pwd;
-				old_pwd = temp;
+                char* new_curr_pwd= CopyCmd(old_pwd);
+                smash.ChangeCurrPwd(new_curr_pwd);
 			}
 			else { //failed
                 perror("smash error: chdir failed");
@@ -1009,8 +1009,8 @@ void ChangeDirCommand::execute() {
 	else {//normal change direction
 		int state = chdir(arg_list[1]);
 		if (state == 0) { //succeeded
-			old_pwd = curr_pwd;
-			curr_pwd = arg_list[1];
+            char* new_curr_pwd= CopyCmd(arg_list[1]);
+		    smash.ChangeCurrPwd(new_curr_pwd);
 		}
 		else { //failed
 			perror("smash error: chdir failed");
@@ -1267,7 +1267,7 @@ void QuitCommand::execute() {
 SmallShell::SmallShell():prompt_name("smash> ") {
 	old_pwd = nullptr;
 	char * buf = nullptr;
-	buf=get_current_dir_name();
+	buf=get_current_dir_name(); //TODO: count as sysetm call? check errno?
 	curr_pwd = buf;
 	job_list=new JobsList();
 	pid=getpid();
@@ -1545,6 +1545,10 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
                                                 // the IO character from the rest of the command
     }
     else{
+        string cmd_s_p=string(cmd_line);
+        if(cmd_s_p.empty()){
+            return nullptr;
+        }
         if(CheckIfBuiltIn(cmd_line) && _isBackgroundComamnd(cmd_line)){
             char * cmd_without_bck=CopyCmd(cmd_line); //drop the &
             _removeBackgroundSign(cmd_without_bck);
@@ -1662,7 +1666,6 @@ void SmallShell::executeCommand(const char *cmd_line) {
 	if(!cmd){
 		return; //TODO: throw error?
 	}
-	//TODO: remove finished jobs
 	current_cmd=cmd;
     job_list->removeFinishedJobs();
 	current_cmd->execute();
