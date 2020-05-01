@@ -1008,6 +1008,20 @@ void ChangeDirCommand::execute() {
 		}
 	}
 
+    else if(string(arg_list[1]) == ".."){
+        if (string(curr_pwd) == "/"){
+            char* new_curr_pwd= CopyCmd(curr_pwd);
+            smash.ChangeCurrPwd(new_curr_pwd);
+        }
+        else{
+            std::size_t found = string(curr_pwd).find_last_of('/');
+            string new_curr_string = string(curr_pwd).substr(0,found);
+            char* new_curr = new char[new_curr_string.size() + 1];
+            strcpy(new_curr, new_curr_string.c_str());
+            smash.ChangeCurrPwd(new_curr);
+        }
+    }
+
 	else {//normal change direction
 		int state = chdir(arg_list[1]);
 		if (state == 0) { //succeeded
