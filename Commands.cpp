@@ -1009,15 +1009,27 @@ void ChangeDirCommand::execute() {
 	}
 
     else if(string(arg_list[1]) == ".."){
+        int state;
         if (string(curr_pwd) == "/"){
             char* new_curr_pwd= CopyCmd(curr_pwd);
+            state = chdir(new_curr_pwd);
+            if(state==-1){
+                FreeCmdArray(arg_list,num_of_args);
+                perror("smash error: chdir failed");
+                return;
+            }
             smash.ChangeCurrPwd(new_curr_pwd);
         }
         else{
             std::size_t found = string(curr_pwd).find_last_of('/');
             string new_curr_string = string(curr_pwd).substr(0,found);
-            char* new_curr = new char[new_curr_string.size() + 1];
-            strcpy(new_curr, new_curr_string.c_str());
+            char* new_curr= CopyCmd(new_curr_string.c_str());
+            state = chdir(new_curr);
+            if(state==-1){
+                FreeCmdArray(arg_list,num_of_args);
+                perror("smash error: chdir failed");
+                return;
+            }
             smash.ChangeCurrPwd(new_curr);
         }
     }
@@ -1025,8 +1037,8 @@ void ChangeDirCommand::execute() {
 	else {//normal change direction
 		int state = chdir(arg_list[1]);
 		if (state == 0) { //succeeded
-            char* new_curr_pwd= CopyCmd(arg_list[1]);
-		    smash.ChangeCurrPwd(new_curr_pwd);
+		    char* full_curr_pwd=get_current_dir_name();
+		    smash.ChangeCurrPwd(full_curr_pwd);
 		}
 		else { //failed
 			perror("smash error: chdir failed");
