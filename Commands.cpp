@@ -247,7 +247,6 @@ ExternalCommand::ExternalCommand(const char* cmd_line, JobsList* jobs):Command(c
 	size_t last_arg_size = strlen(arg_list[num_of_args-1]);
 	if(_isBackgroundComamnd(cmd_line)){
 	    ChangeBackground();
-	    IncCounter();
 	}
     cmd_without_bck=CopyCmd(GetCmdLine()); //drop the &
     _removeBackgroundSign(cmd_without_bck);
@@ -1071,8 +1070,22 @@ void KillCommand::execute() {
 	int res,sig,jobID;
 	char* arg_list[COMMAND_MAX_ARGS + 1];
 	num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
-	try{
+    try {
         jobID=stoi(arg_list[2]);
+    }
+    catch(invalid_argument &e){
+        std::cerr << "smash error: kill: job-id " << arg_list[2] << " does not exist\n";
+        FreeCmdArray(arg_list,num_of_args);
+        return;
+    }
+    if (jobID<1){
+        std::cerr << "smash error: kill: job-id " << arg_list[2] << " does not exist\n";
+        FreeCmdArray(arg_list,num_of_args);
+        return;
+    }
+
+    try{
+
         sig=stoi(arg_list[1]);
 	}
 	catch(invalid_argument &e){
@@ -1080,11 +1093,7 @@ void KillCommand::execute() {
         FreeCmdArray(arg_list,num_of_args);
         return;
 	}
-	if (jobID<1){
-        std::cerr << "smash error: kill: job-id " << arg_list[2] << " does not exist\n";
-        FreeCmdArray(arg_list,num_of_args);
-        return;
-	}
+
 	if (num_of_args != 3 || arg_list[1][0] != '-'||(31<sig || sig<0)) { //checking input
 		std::cerr << "smash error: kill: invalid arguments\n";
         FreeCmdArray(arg_list,num_of_args);
@@ -1116,7 +1125,7 @@ ForegroundCommand::ForegroundCommand(const char* cmd_line, JobsList* jobs) :Buil
 }
 
 void ForegroundCommand::execute() {
-	int num_of_args,status;
+	int num_of_args,status = 0;
 	int jobID;
 	pid_t jobPID;
 	int res=0;
@@ -1133,12 +1142,8 @@ void ForegroundCommand::execute() {
 			else {
 				//TODO: add function to remove last job so no error occurs!
 				JobsList::JobEntry* last_job = job_list->getLastJob(&jobID);
-                if (jobID<1){
-                    std::cerr << "smash error: fg: job-id " << args[2] << " does not exist\n";
-                    FreeCmdArray(args,num_of_args);
-                    return;
-                }
-				std::cout << last_job->GetCommand()->GetCmdLine() << " : " << jobPID << "\n";
+                jobPID = last_job->GetCommand()->GetPID();
+                std::cout << last_job->GetCommand()->GetCmdLine() << " : " << jobPID << "\n";
                 smash.ChangeCurrCmd(last_job->GetCommand());
 				res=kill(jobPID, SIGCONT);
 				if(res==-1) {
@@ -1146,12 +1151,14 @@ void ForegroundCommand::execute() {
 					break;
 				}
 				res=waitpid(jobPID, &status, WUNTRACED);
-                if(res==-1) {
-                    perror("smash error: waitpid failed");
-                }
                 if(!WIFSTOPPED(status)){ //job finished, wasn't stopped again
                     job_list->removeJobById(jobID);
                 }
+                if(res==-1) {
+                    perror("smash error: waitpid failed");
+
+                }
+
 				break;
 			}
 		}
@@ -1163,6 +1170,10 @@ void ForegroundCommand::execute() {
 				std::cerr << "smash error: fg: invalid arguments\n";
 				break;
 			}
+            if (jobID<1){
+                std::cerr << "smash error: fg: job-id " << args[2] << " does not exist\n";
+                break;
+            }
 			JobsList::JobEntry* job = job_list->getJobById(jobID);
 			if (!job) {
 				std::cerr << "smash error: fg: job-id " << jobID << " does not exist\n";
@@ -1200,6 +1211,85 @@ BackgroundCommand::BackgroundCommand(const char* cmd_line, JobsList* jobs) :Buil
 	job_list = jobs;
 }
 
+void BackgroundCommand::execute() {
+    int num_of_args,status;
+    int jobID;
+    pid_t jobPID;
+    int res=0;
+    char* args[COMMAND_MAX_ARGS + 1];
+    num_of_args = _parseCommandLine(GetCmdLine(), args);
+    switch (num_of_args) {
+        case 1: {
+            unsigned long list_size = job_list->ListSize();
+            if (list_size == 0) {
+                std::cerr << "smash error: bg: there is no stopped jobs to resume\n";
+                break;
+            }
+            else {
+                JobsList::JobEntry* last_job = job_list->getLastStoppedJob(&jobID);
+
+                if (last_job == nullptr){
+                    std::cerr << "smash error: bg: there is no stopped jobs to resume\n";
+                    break;
+                }
+
+                jobPID = last_job->GetCommand()->GetPID();
+                std::cout << last_job->GetCommand()->GetCmdLine() << " : " << jobPID << "\n";
+                res=kill(jobPID, SIGCONT);
+                if(res==-1) {
+                    perror("smash error: kill failed");
+                    break;
+                }
+                else{
+                    last_job->ChangeStoppedStatus();
+                }
+                break;
+            }
+        }
+        case 2: {
+            try {
+                jobID = stoi(args[1]);
+            }
+            catch (out_of_range &e) {
+                std::cerr << "smash error: bg: invalid arguments\n";
+                break;
+            }
+            if (jobID<1){
+                std::cerr << "smash error: bg: job-id " << args[2] << " does not exist\n";
+                break;
+            }
+            JobsList::JobEntry* job = job_list->getJobById(jobID);
+            if (!job) {
+                std::cerr << "smash error: bg: job-id " << jobID << " does not exist\n";
+                break;
+            }
+            jobPID = job->GetCommand()->GetPID();
+
+            if(!(job->isStopped())){
+                std::cerr << "smash error: bg: job-id " << jobID << " is already running in the background\n";
+                break;
+            }
+
+            std::cout << job->GetCommand()->GetCmdLine() << " : " << jobPID << "\n";
+            res=kill(jobPID, SIGCONT);
+            if(res==-1) {
+                perror("smash error: kill failed");
+                break;
+            }
+            else{
+                job->ChangeStoppedStatus();
+            }
+            break;
+        }
+        default:
+            std::cerr << "smash error: bg: invalid arguments\n";
+            break;
+
+    }
+    FreeCmdArray(args,num_of_args);
+}
+
+/*
 void BackgroundCommand::execute() {
 	unsigned long list_size = job_list->ListSize();
 	if (list_size == 0) {
@@ -1262,7 +1352,7 @@ void BackgroundCommand::execute() {
 	//free allocated memory from arg_list
 	FreeCmdArray(arg_list,num_of_args);
 }
-
+*/
 
 /*-------------------------BuiltInCommand QuitCommand------------------------*/
 
