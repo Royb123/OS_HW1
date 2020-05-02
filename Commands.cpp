@@ -894,33 +894,20 @@ void TimeoutCommand::execute(){
 
     string time=arg_list[1];
     unsigned int duration=(unsigned int)stoi(time);
-    pid_t pid = fork();
-    if(pid==-1){
-        perror("smash error: fork failed");
-    }
-    if(cmd->GetIsExternal()){
-        ExternalCommand* ex_cmd=(ExternalCommand*)cmd;
-        ex_cmd->PrepForPipeOrTime();
-    }
-    if (pid == 0) { //child
-        setpgrp();
-        cmd->execute();
-        exit(0);
-    }
-    else {
-        ChangePID(pid);
+    if(!cmd->GetIsExternal()){
         TimeoutList::TimeoutEntry *entry = times->addTimedJob(this, duration);
+        cmd->execute();
+    }
+    else{
+        TimeoutList::TimeoutEntry *entry = times->addTimedJob(this, duration);
+        cmd->execute();
         if (GetBackground()) {
-            FreeCmdArray(arg_list, num_of_args);
+            ChangePID(cmd->GetPID());
             JobsList::JobEntry *new_job = jobs->addJob(this, false);
             entry->ChangeJobID(new_job->GetJobID());
-            return;
         }
 
-        int status;
-        waitpid(pid, &status, WUNTRACED);
     }
-
     FreeCmdArray(arg_list,num_of_args);
 }
 
@@ -1764,8 +1751,15 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 	else if(first_word=="timeout"){
 	    try{
 	        stoi(arg_list[1]);
+	        if(num_of_args<3 || stoi(arg_list[1])<=0){
+	            std::cerr << "smash error: timout: invalid arguments\n";
+                cmd = nullptr;
+                FreeCmdArray(arg_list,num_of_args);
+                return cmd;
+	        }
 	    }
 	    catch(invalid_argument &e){
+            std::cerr << "smash error: timout: invalid arguments\n";
 	        cmd = nullptr;
 	        FreeCmdArray(arg_list,num_of_args);
 	        return cmd;

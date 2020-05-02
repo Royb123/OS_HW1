@@ -92,7 +92,7 @@ void alarmHandler(int sig_num){
     jobs->removeFinishedJobs();
     jobid=first->GetCommand()->GetJobID();
     JobsList::JobEntry* entry=jobs->getJobById(jobid);
-    if(!entry && first->GetCommand()->GetBackground()){
+    if((!entry && first->GetCommand()->GetBackground())||!first->GetCommand()->GetIsExternal()){
         times->removeTimedJob();
         return;
     }
