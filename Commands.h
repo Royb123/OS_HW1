@@ -26,6 +26,7 @@ class Command {
 protected:
     bool is_pipe;
     bool is_external;
+    bool is_quit;
 public:
     Command();
     explicit Command(const char* cmd_line);
@@ -41,6 +42,7 @@ public:
     const pid_t GetPID(){return pid;}
     bool GetIsPipe(){return is_pipe;};
     bool GetIsExternal(){return is_external;};
+    bool GetIsQuit(){return is_quit;};
     bool GetBackground(){return background;};
     void ChangePID(pid_t new_pid){pid=new_pid;};
     void ChangeBackground(){

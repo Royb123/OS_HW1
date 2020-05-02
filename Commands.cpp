@@ -149,7 +149,7 @@ int FindIfIO(const char* cmd_line){
     }
 	return res;
 }
-const char* ParseWithIO(const char* cmd_line,int res){
+string* ParseWithIO(const char* cmd_line,int res){
     string cmd_s=string(cmd_line);
     unsigned long ind=0;
     if(res==OVERRIDE){
@@ -164,13 +164,13 @@ const char* ParseWithIO(const char* cmd_line,int res){
     else if(res==PIPEERR){
         ind=cmd_s.find("|&");
     }
-    string cmd1_s;
+    string* cmd1_s = new string;
     if(ind==0){
-        return cmd1_s.c_str();
+        return cmd1_s;
     }
-    cmd1_s=cmd_s.substr(0,ind);
-    const char* new_cmd=cmd1_s.c_str();
-    return new_cmd;
+    *cmd1_s=cmd_s.substr(0,ind);
+    //const char* new_cmd=cmd1_s->c_str();
+    return cmd1_s;
 }
 
 string* ParseTimeoutCmd(const char* timeout_cmd){
@@ -218,6 +218,7 @@ Command::Command():cmd_line(""){
 	is_pipe=false;
 	is_external=false;
 	jobID=-1;
+	is_quit=false;
 
 };
 Command::Command(const char* cmd_line) {
@@ -229,6 +230,7 @@ Command::Command(const char* cmd_line) {
     is_pipe=false;
     is_external=false;
     jobID=-1;
+    is_quit=false;
 }
 
 Command::~Command(){
@@ -585,8 +587,9 @@ void RedirectionCommand::execute() {
     }
     //separate the file name from the rest of the command
     file_name=cmd_s.substr(ind+1,string::npos);
-    unsigned long ind2=file_name.find_first_of(' ');
-    file_name=file_name.substr(0,ind2);
+    unsigned long ind2=file_name.find_first_not_of(' ');
+    unsigned long ind3=file_name.find_last_not_of(' ');
+    file_name=file_name.substr(ind2,ind3);
     ofstream out_file;
     if(type==APPEND){
         out_file=ofstream(file_name,ofstream::out|ofstream::app);
@@ -601,6 +604,10 @@ void RedirectionCommand::execute() {
     }
     cmd->execute();
     cout.rdbuf(cout_buffer);
+    if(cmd->GetIsQuit()){
+        out_file.close();
+        exit(0);
+    }
     //free(cmd);
 }
 
@@ -1359,6 +1366,7 @@ void BackgroundCommand::execute() {
 QuitCommand::QuitCommand(const char* cmd_line, JobsList* jobs) :BuiltInCommand(cmd_line) {
 	jobs_list = jobs;
 	char * args[COMMAND_MAX_ARGS + 1];
+	is_quit=true;
 	int num_of_args = _parseCommandLine(cmd_line,args);
 	isKillSpecified=false;
 	if(num_of_args >= 2){
@@ -1383,7 +1391,6 @@ void QuitCommand::execute() {
 	else {
 		jobs_list->ClearJobsFromList();
 	}
-	exit(0); //TODO:maybe we shouldn't put exit here
 }
 
 
@@ -1673,8 +1680,8 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     res=FindIfIO(cmd_line); //determines if an IO character is present
     const char* new_cmd_line;
     if(res!=REGULAR){
-        new_cmd_line=ParseWithIO(cmd_line,res); //takes only the first part of the IO command,
-                                                //determines if it's valid and seperates
+        string* new_cmd_line_s=ParseWithIO(cmd_line,res); //takes only the first part of the IO command,
+        new_cmd_line=new_cmd_line_s->c_str();    //determines if it's valid and seperates
                                                 // the IO character from the rest of the command
     }
     else{
@@ -1784,8 +1791,17 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 	}
 
 	if(res==OVERRIDE || res==APPEND){
+        RedirectionCommand* reder_cmd;
 		FreeCmdArray(arg_list,num_of_args);
-		RedirectionCommand* reder_cmd = new RedirectionCommand(cmd_line,res,cmd);
+        if(CheckIfBuiltIn(new_cmd_line) && _isBackgroundComamnd(cmd_line)) {
+            char *cmd_without_bck = CopyCmd(cmd_line); //drop the &
+            _removeBackgroundSign(cmd_without_bck);
+            const char* alt_cmd_line = (const char *) cmd_without_bck;
+            reder_cmd = new RedirectionCommand(alt_cmd_line,res,cmd);
+        }
+        else{
+            reder_cmd = new RedirectionCommand(cmd_line,res,cmd);
+        }
 		return reder_cmd;
 	 	//TODO: redirection needs to support external commands??
 	}
@@ -1805,6 +1821,9 @@ void SmallShell::executeCommand(const char *cmd_line) {
 	current_cmd= nullptr;
 	if(cmd->GetBackground()){
 		return;
+	}
+	if(cmd->GetIsQuit()){
+	    exit(0);
 	}
 	delete cmd;
 	// Please note that you must fork smash process for some commands (e.g., external commands....)

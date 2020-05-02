@@ -85,19 +85,18 @@ void alarmHandler(int sig_num){
     JobsList* jobs=smash.GetJobList();
     TimeoutList* times=smash.GetTimeoutList();
     TimeoutList::TimeoutEntry* first=times->GetFirstEntry();
+    std::cout << "smash: got an alarm\n";
     int jobid;
     int res1=0;
     pid_t pid1;
     jobs->removeFinishedJobs();
     jobid=first->GetCommand()->GetJobID();
     JobsList::JobEntry* entry=jobs->getJobById(jobid);
-
     if(!entry && first->GetCommand()->GetBackground()){
         times->removeTimedJob();
         return;
     }
     pid1=first->GetCommand()->GetPID();
-    std::cout << "smash: got an alarm\n";
     int status;
     waitpid(pid1,&status,WNOHANG|WUNTRACED);
     if(!WIFSIGNALED(status)){
