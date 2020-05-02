@@ -1072,9 +1072,10 @@ void KillCommand::execute() {
 	num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
     try {
         jobID=stoi(arg_list[2]);
+        sig=stoi(arg_list[1]);
     }
     catch(invalid_argument &e){
-        std::cerr << "smash error: kill: job-id " << arg_list[2] << " does not exist\n";
+        std::cerr << "smash error: kill: invalid arguments\n";
         FreeCmdArray(arg_list,num_of_args);
         return;
     }
@@ -1083,16 +1084,6 @@ void KillCommand::execute() {
         FreeCmdArray(arg_list,num_of_args);
         return;
     }
-
-    try{
-
-        sig=stoi(arg_list[1]);
-	}
-	catch(invalid_argument &e){
-        std::cerr << "smash error: kill: invalid arguments\n";
-        FreeCmdArray(arg_list,num_of_args);
-        return;
-	}
 
 	if (num_of_args != 3 || arg_list[1][0] != '-'||(31<sig || sig<0)) { //checking input
 		std::cerr << "smash error: kill: invalid arguments\n";
