@@ -580,13 +580,14 @@ void RedirectionCommand::execute() {
     unsigned long ind=0;
     if(type==APPEND){
         ind=cmd_s.find(">>");
+        file_name=cmd_s.substr(ind+2,string::npos);
 
     }
     else{
         ind=cmd_s.find('>');
+        file_name=cmd_s.substr(ind+1,string::npos);
     }
     //separate the file name from the rest of the command
-    file_name=cmd_s.substr(ind+1,string::npos);
     unsigned long ind2=file_name.find_first_not_of(' ');
     unsigned long ind3=file_name.find_last_not_of(' ');
     file_name=file_name.substr(ind2,ind3);
@@ -1674,10 +1675,15 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
         if(cmd_s_p.empty()){
             return nullptr;
         }
-        if(CheckIfBuiltIn(cmd_line) && _isBackgroundComamnd(cmd_line)){
+        if(_isBackgroundComamnd(cmd_line)){
             char * cmd_without_bck=CopyCmd(cmd_line); //drop the &
             _removeBackgroundSign(cmd_without_bck);
-            new_cmd_line=(const char*)cmd_without_bck;
+            if(CheckIfBuiltIn(cmd_without_bck)){
+                new_cmd_line=(const char*)cmd_without_bck;
+            }
+            else{
+                new_cmd_line = cmd_line;
+            }
         }
         else {
             new_cmd_line = cmd_line;
