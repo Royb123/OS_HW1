@@ -545,8 +545,8 @@ void PipeCommand::execute() {
                 exit(-1);
             }
             int status,status2;
-            waitpid(pid2, &status, WUNTRACED);
-            waitpid(pid3, &status2, WUNTRACED);
+            waitpid(pid2, &status, 0);
+            waitpid(pid3, &status2, 0);
             exit(0);
 
         }
@@ -1097,7 +1097,7 @@ void KillCommand::execute() {
         num=string(arg_list[1]).substr(1,string::npos);
         sig=stoi(num);
     }
-    catch(invalid_argument &e){
+    catch(exception &e){
         std::cerr << "smash error: kill: invalid arguments" << endl;
         FreeCmdArray(arg_list,num_of_args);
         return;
@@ -1159,7 +1159,13 @@ void ForegroundCommand::execute() {
                 jobPID = last_job->GetCommand()->GetPID();
                 std::cout << last_job->GetCommand()->GetCmdLine() << " : " << jobPID << endl;
                 smash.ChangeCurrCmd(last_job->GetCommand());
-				res=kill(jobPID, SIGCONT);
+                if(smash.GetCurrCmd()->GetIsPipe()){
+                    res=killpg(smash.GetCurrCmd()->GetPID(),SIGCONT);
+                }
+                else{
+                    res=kill(jobPID, SIGCONT);
+                }
+
 				if(res==-1) {
 					perror("smash error: kill failed");
 					break;
@@ -1180,7 +1186,7 @@ void ForegroundCommand::execute() {
 			try {
 				jobID = stoi(args[1]);
 			}
-			catch (out_of_range &e) {
+			catch (exception &e) {
 				std::cerr << "smash error: fg: invalid arguments" << endl;
 				break;
 			}
@@ -1196,7 +1202,13 @@ void ForegroundCommand::execute() {
 			jobPID = job->GetCommand()->GetPID();
             smash.ChangeCurrCmd(job->GetCommand());
 			std::cout << job->GetCommand()->GetCmdLine() << " : " << jobPID << endl;
-			res=kill(jobPID, SIGCONT);
+            if(smash.GetCurrCmd()->GetIsPipe()){
+                res=killpg(smash.GetCurrCmd()->GetPID(),SIGCONT);
+            }
+            else{
+                res=kill(jobPID, SIGCONT);
+            }
+
 			if(res==-1) {
 				perror("smash error: kill failed");
 				break;
@@ -1249,7 +1261,12 @@ void BackgroundCommand::execute() {
 
                 jobPID = last_job->GetCommand()->GetPID();
                 std::cout << last_job->GetCommand()->GetCmdLine() << " : " << jobPID << endl;
-                res=kill(jobPID, SIGCONT);
+                if(last_job->GetCommand()->GetIsPipe()){
+                    res=killpg(last_job->GetCommand()->GetPID(),SIGCONT);
+                }
+                else{
+                    res=kill(jobPID, SIGCONT);
+                }
                 if(res==-1) {
                     perror("smash error: kill failed");
                     break;
@@ -1266,7 +1283,7 @@ void BackgroundCommand::execute() {
             try {
                 jobID = stoi(args[1]);
             }
-            catch (out_of_range &e) {
+            catch (exception &e) {
                 std::cerr << "smash error: bg: invalid arguments" << endl;
                 break;
             }
@@ -1287,7 +1304,13 @@ void BackgroundCommand::execute() {
             }
 
             std::cout << job->GetCommand()->GetCmdLine() << " : " << jobPID << endl;
-            res=kill(jobPID, SIGCONT);
+            if(job->GetCommand()->GetIsPipe()){
+                res=killpg(job->GetCommand()->GetPID(),SIGCONT);
+            }
+            else{
+                res=kill(jobPID, SIGCONT);
+            }
+
             if(res==-1) {
                 perror("smash error: kill failed");
                 break;
@@ -1797,7 +1820,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
                 return cmd;
 	        }
 	    }
-	    catch(invalid_argument &e){
+	    catch(exception &e){
             std::cerr << "smash error: timout: invalid arguments" << endl;
 	        cmd = nullptr;
 	        FreeCmdArray(arg_list,num_of_args);
