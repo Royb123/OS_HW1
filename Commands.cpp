@@ -1794,7 +1794,6 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
             reder_cmd = new RedirectionCommand(cmd_line,res,cmd);
         }
 		return reder_cmd;
-	 	//TODO: redirection needs to support external commands??
 	}
 
 	FreeCmdArray(arg_list,num_of_args);
