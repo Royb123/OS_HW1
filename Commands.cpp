@@ -448,6 +448,8 @@ void PipeCommand::execute() {
     }
     if (pid1 == 0) {
         //First child process
+
+        setpgrp();
         int pid_pipe_arr[2];
         int result = pipe(pid_pipe_arr);
         if (result == -1) {
@@ -588,6 +590,7 @@ void RedirectionCommand::execute() {
         file_name=cmd_s.substr(ind+1,string::npos);
     }
     //separate the file name from the rest of the command
+    //TODO: what if we get two file names?
     unsigned long ind2=file_name.find_first_not_of(' ');
     unsigned long ind3=file_name.find_last_not_of(' ');
     file_name=file_name.substr(ind2,ind3);

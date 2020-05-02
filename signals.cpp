@@ -14,8 +14,7 @@ void ctrlZHandler(int sig_num) {
     }
     pid_t pid;
     if(smash.GetCurrCmd()->GetIsPipe()) {
-        PipeCommand *p_cmd = (PipeCommand *) smash.GetCurrCmd();
-        pid = p_cmd->GetPID();
+        pid = smash.GetCurrCmd()->GetPID();
         int res1 = killpg(pid, SIGSTOP);
         if (res1 == -1) {
             perror("smash error: kill failed");
@@ -61,8 +60,7 @@ void ctrlCHandler(int sig_num) {
         return;
     }
     if(smash.GetCurrCmd()->GetIsPipe()) {
-        PipeCommand *p_cmd = (PipeCommand *) smash.GetCurrCmd();
-        pid = p_cmd->GetPID();
+        pid = smash.GetCurrCmd()->GetPID();
         int res1 = killpg(pid, SIGKILL);
         if (res1 == -1) {
             perror("smash error: kill failed");
