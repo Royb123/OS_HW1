@@ -1067,6 +1067,11 @@ void KillCommand::execute() {
 	char* arg_list[COMMAND_MAX_ARGS + 1];
 	num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
     try {
+        if(num_of_args!=3){
+            std::cerr << "smash error: kill: invalid arguments\n";
+            FreeCmdArray(arg_list,num_of_args);
+            return;
+        }
         jobID=stoi(arg_list[2]);
         num=string(arg_list[1]).substr(1,string::npos);
         sig=stoi(num);
