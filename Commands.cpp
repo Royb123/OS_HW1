@@ -748,7 +748,14 @@ void CopyCommand::execute(){
 
 
     if(same_files) {
-        std::cout << "smash: " << arg_list[1] <<" was copied to " << arg_list[2] << "\n";
+        int file = open(arg_list[1], O_RDONLY);
+        if (file==-1){
+            perror("smash error: open failed");
+        }
+        else{
+            close(file);
+            std::cout << "smash: " << arg_list[1] <<" was copied to " << arg_list[2] << "\n";
+        }
         FreeCmdArray(arg_list, num_of_args);
         return;
     }
