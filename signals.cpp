@@ -24,7 +24,6 @@ void ctrlZHandler(int sig_num) {
     }
     else {
         pid = smash.GetCurrCmd()->GetPID();
-        std::cout << "pid is: " << pid;
         if (pid == smash.GetPID()) {
             return;
         }
@@ -36,7 +35,7 @@ void ctrlZHandler(int sig_num) {
     }
     JobsList* jobs=smash.GetJobList();
     Command* new_stopped_cmd=smash.GetCurrCmd();
-    if(new_stopped_cmd->GetCounter()==0){
+    if(new_stopped_cmd->GetCounter()==0 &&!new_stopped_cmd->GetBackground()){
         jobs->removeFinishedJobs();
         jobs->addJob(new_stopped_cmd,true);
         new_stopped_cmd->IncCounter();
@@ -46,6 +45,10 @@ void ctrlZHandler(int sig_num) {
         int jobid=new_stopped_cmd->GetJobID();
         JobsList::JobEntry* entry = jobs->getJobById(jobid);
         entry->SetNewStartTime();
+        if(!entry->isStopped()){
+            entry->ChangeStoppedStatus();
+        }
+
     }
     std::cout << "smash: process "<< pid << " was stopped\n";
 }

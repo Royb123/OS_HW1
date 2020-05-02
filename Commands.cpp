@@ -1062,11 +1062,13 @@ KillCommand::KillCommand(const char* cmd_line, JobsList* jobs) :BuiltInCommand(c
 void KillCommand::execute() {
 	int num_of_args;
 	int res,sig,jobID;
+    string num;
 	char* arg_list[COMMAND_MAX_ARGS + 1];
 	num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
     try {
         jobID=stoi(arg_list[2]);
-        sig=stoi(arg_list[1]);
+        num=string(arg_list[1]).substr(1,string::npos);
+        sig=stoi(num);
     }
     catch(invalid_argument &e){
         std::cerr << "smash error: kill: invalid arguments\n";
@@ -1094,7 +1096,7 @@ void KillCommand::execute() {
 		//everything is OK, execute signal
 		res = job_list->ExecuteSignal(jobID,sig);
 		if (res == OK) {
-			std::cout << "signal number " << arg_list[1] << "was sent to pid " << arg_list[2] << endl;
+			std::cout << "signal number " << num << " was sent to pid " << arg_list[2] << endl;
 
 		}
 	}
@@ -1156,7 +1158,7 @@ void ForegroundCommand::execute() {
 				break;
 			}
             if (jobID<1){
-                std::cerr << "smash error: fg: job-id " << args[2] << " does not exist\n";
+                std::cerr << "smash error: fg: job-id " << args[1] << " does not exist\n";
                 break;
             }
 			JobsList::JobEntry* job = job_list->getJobById(jobID);
@@ -1226,7 +1228,9 @@ void BackgroundCommand::execute() {
                     break;
                 }
                 else{
-                    last_job->ChangeStoppedStatus();
+                    if(last_job->isStopped()){
+                        last_job->ChangeStoppedStatus();
+                    }
                 }
                 break;
             }
@@ -1240,7 +1244,7 @@ void BackgroundCommand::execute() {
                 break;
             }
             if (jobID<1){
-                std::cerr << "smash error: bg: job-id " << args[2] << " does not exist\n";
+                std::cerr << "smash error: bg: job-id " << args[1] << " does not exist\n";
                 break;
             }
             JobsList::JobEntry* job = job_list->getJobById(jobID);
@@ -1262,7 +1266,9 @@ void BackgroundCommand::execute() {
                 break;
             }
             else{
-                job->ChangeStoppedStatus();
+                if(job->isStopped()){
+                    job->ChangeStoppedStatus();
+                }
             }
             break;
         }
@@ -1508,7 +1514,6 @@ void JobsList::PrintForQuit(){
 		pid=(*iter)->GetCommand()->GetPID();
 		std::cout << pid << ": " << (*iter)->GetCommand()->GetCmdLine() << "\n";
 	}
-	std::cout <<"Linux-shell:" << "\n";
 
 }
 JobsList::JobEntry* JobsList::getLastJob(int* lastJobID){//TODO: is that what they want with the ptr?
@@ -1580,7 +1585,9 @@ int JobsList::ExecuteSignal(int jobID,int signal){
 			break;
 
 		case SIGSTOP:
-			job->ChangeStoppedStatus();
+            if(job->isStopped()){
+                job->ChangeStoppedStatus();
+            }
 			break;
 
 		default:
