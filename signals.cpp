@@ -8,7 +8,7 @@ using namespace std;
 
 void ctrlZHandler(int sig_num) {
     SmallShell& smash = SmallShell::getInstance();
-    std::cout << "smash: got ctrl-Z\n";
+    std::cout << "smash: got ctrl-Z" << endl;
     if(!smash.GetCurrCmd()){
         return;
     }
@@ -49,13 +49,13 @@ void ctrlZHandler(int sig_num) {
         }
 
     }
-    std::cout << "smash: process "<< pid << " was stopped\n";
+    std::cout << "smash: process "<< pid << " was stopped" << endl;
 }
 
 void ctrlCHandler(int sig_num) {
     SmallShell& smash = SmallShell::getInstance();
     pid_t pid;
-    std::cout << "smash: got ctrl-C\n";
+    std::cout << "smash: got ctrl-C" << endl;
     if(!smash.GetCurrCmd()){
         return;
     }
@@ -78,7 +78,7 @@ void ctrlCHandler(int sig_num) {
             return;
         }
     }
-    std::cout << "smash: process "<< pid << " was killed\n";
+    std::cout << "smash: process "<< pid << " was killed" << endl;
 }
 
 void alarmHandler(int sig_num){
@@ -86,7 +86,7 @@ void alarmHandler(int sig_num){
     JobsList* jobs=smash.GetJobList();
     TimeoutList* times=smash.GetTimeoutList();
     TimeoutList::TimeoutEntry* first=times->GetFirstEntry();
-    std::cout << "smash: got an alarm\n";
+    std::cout << "smash: got an alarm" << endl;
     int jobid;
     int res1=0;
     pid_t pid1;
@@ -107,7 +107,7 @@ void alarmHandler(int sig_num){
             return;
         }
     }
-    std::cout << first->GetCommand()->GetCmdLine() << " timed out!\n";
+    std::cout << first->GetCommand()->GetCmdLine() << " timed out!" << endl;
     if(first->GetBackGround()){
         jobs->removeJobById(first->GetJobID());
     }

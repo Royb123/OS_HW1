@@ -67,7 +67,7 @@ int _parseCommandLine(const char* cmd_line, char** args) {
 	for(std::string s; iss >> s; ) {
 		args[i] = (char*)malloc(s.length()+1);
 		if(args[i]==nullptr){
-		    std::cerr << "smash error: memory allocation failed\n";
+		    std::cerr << "smash error: memory allocation failed" << endl;
 		}
 		memset(args[i], 0, s.length()+1);
 		strcpy(args[i], s.c_str());
@@ -450,12 +450,14 @@ void PipeCommand::execute() {
         //First child process
 
         setpgrp();
+        /*
         int pid_pipe_arr[2];
         int result = pipe(pid_pipe_arr);
         if (result == -1) {
             perror("smash error: pipe failed");
             exit(-1);
         }
+         */
         int stdin_copy = 0;
         int stdout_copy = 1;
         int stderr_copy = 2;
@@ -593,34 +595,35 @@ void RedirectionCommand::execute() {
     //TODO: what if we get two file names?
     unsigned long ind2=file_name.find_first_not_of(' ');
     unsigned long ind3=file_name.find_last_not_of(' ');
-    file_name=file_name.substr(ind2,ind3);
-    ofstream out_file;
+    file_name=file_name.substr(ind2,ind3+1);
+    int stdout_copy= dup(1); //save stdout
+    close(1);
+    int file;
     if(type==APPEND){
-        out_file=ofstream(file_name,ofstream::out|ofstream::app);
-    } //TODO: check if path is valid
+        file = open(file_name.c_str(),O_WRONLY|O_CREAT|O_APPEND,000777);
+    }
     else{
-        out_file=ofstream(file_name,ofstream::out|ofstream::trunc);
+        file = open(file_name.c_str(),O_WRONLY|O_CREAT|O_TRUNC,000777);
     }
-    streambuf* cout_buffer = cout.rdbuf();
-    cout.rdbuf(out_file.rdbuf());
-    if(cmd->GetIsExternal() && GetBackground()){
-        cmd->ChangeBackground();
-    }
-    int file = open(file_name.c_str(),O_RDONLY);
     if (file==-1){
+        dup2(stdout_copy, 1);
+        close(stdout_copy);
         perror("smash error: open failed");
         return;
     }
     else{
+        if(cmd->GetIsExternal() && GetBackground()){
+            cmd->ChangeBackground();
+        }
+        cmd->execute();
         close(file);
+        dup2(stdout_copy, 1);
+        close(stdout_copy);
+        if(cmd->GetIsQuit()){
+            exit(0);
+        }
     }
-    cmd->execute();
-    cout.rdbuf(cout_buffer);
-    if(cmd->GetIsQuit()){
-        out_file.close();
-        exit(0);
-    }
-    //free(cmd);
+
 }
 
 
@@ -765,7 +768,7 @@ void CopyCommand::execute(){
         }
         else{
             close(file);
-            std::cout << "smash: " << arg_list[1] <<" was copied to " << arg_list[2] << "\n";
+            std::cout << "smash: " << arg_list[1] <<" was copied to " << arg_list[2] << endl;
         }
         FreeCmdArray(arg_list, num_of_args);
         return;
@@ -886,7 +889,7 @@ void CopyCommand::execute(){
         delete file_to_read;
         delete file_to_write;
         delete status;
-        std::cout << "smash: " << arg_list[1] <<" was copied to " << arg_list[2] << "\n";
+        std::cout << "smash: " << arg_list[1] <<" was copied to " << arg_list[2] << endl;
         FreeCmdArray(arg_list, num_of_args);
         exit(1);
 
@@ -959,7 +962,7 @@ void ChangePromptCommand::execute() {
 
 /*-------------------------BuiltInCommand ShowPid-------------------------*/
 void ShowPidCommand::execute()  {
-	std::cout << "smash pid is " << GetPID() << "\n";
+	std::cout << "smash pid is " << GetPID() << endl;
 };
 
 
@@ -971,7 +974,7 @@ void GetCurrDirCommand::execute() {
 		perror("smash error: getcwd failed");
 		return;
 	}
-	std::cout << pwd << "\n";
+	std::cout << pwd << endl;
 	free(pwd);
 }
 
@@ -995,7 +998,7 @@ void ChangeDirCommand::execute() {
 	}
 	//if there are more than 2 arguments
 	if (arg_list[2] != NULL) {
-		std::cerr << "smash error: cd: too many arguments\n";
+		std::cerr << "smash error: cd: too many arguments" << endl;
         FreeCmdArray(arg_list,num_of_args);
         return;
 	}
@@ -1004,7 +1007,7 @@ void ChangeDirCommand::execute() {
 	if (string(arg_list[1]) == "-") {
 		//in case there is no available history
 		if (old_pwd == nullptr) {
-			std::cerr << "smash error: cd: OLDPWD not set\n";
+			std::cerr << "smash error: cd: OLDPWD not set" << endl;
 
 		}
 		//in case there is available history
@@ -1086,7 +1089,7 @@ void KillCommand::execute() {
 	num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
     try {
         if(num_of_args!=3){
-            std::cerr << "smash error: kill: invalid arguments\n";
+            std::cerr << "smash error: kill: invalid arguments" << endl;
             FreeCmdArray(arg_list,num_of_args);
             return;
         }
@@ -1095,18 +1098,18 @@ void KillCommand::execute() {
         sig=stoi(num);
     }
     catch(invalid_argument &e){
-        std::cerr << "smash error: kill: invalid arguments\n";
+        std::cerr << "smash error: kill: invalid arguments" << endl;
         FreeCmdArray(arg_list,num_of_args);
         return;
     }
     if (jobID<1){
-        std::cerr << "smash error: kill: job-id " << arg_list[2] << " does not exist\n";
+        std::cerr << "smash error: kill: job-id " << arg_list[2] << " does not exist" << endl;
         FreeCmdArray(arg_list,num_of_args);
         return;
     }
 
 	if (num_of_args != 3 || arg_list[1][0] != '-'||(31<sig || sig<0)) { //checking input
-		std::cerr << "smash error: kill: invalid arguments\n";
+		std::cerr << "smash error: kill: invalid arguments" << endl;
         FreeCmdArray(arg_list,num_of_args);
         return;
 	}
@@ -1114,7 +1117,7 @@ void KillCommand::execute() {
 
 	JobsList::JobEntry* temp = this->job_list->getJobById(jobID);
 	if (temp == nullptr) {
-		std::cerr << "smash error: kill: job-id " << arg_list[2] << " does not exist\n";
+		std::cerr << "smash error: kill: job-id " << arg_list[2] << " does not exist" << endl;
 	}
 	else {
 		//everything is OK, execute signal
@@ -1147,14 +1150,14 @@ void ForegroundCommand::execute() {
 		case 1: {
 			unsigned long list_size = job_list->ListSize();
 			if (list_size == 0) {
-				std::cerr << "smash error: fg: jobs list is empty\n";
+				std::cerr << "smash error: fg: jobs list is empty" << endl;
 				break;
 			}
 			else {
 				//TODO: add function to remove last job so no error occurs!
 				JobsList::JobEntry* last_job = job_list->getLastJob(&jobID);
                 jobPID = last_job->GetCommand()->GetPID();
-                std::cout << last_job->GetCommand()->GetCmdLine() << " : " << jobPID << "\n";
+                std::cout << last_job->GetCommand()->GetCmdLine() << " : " << jobPID << endl;
                 smash.ChangeCurrCmd(last_job->GetCommand());
 				res=kill(jobPID, SIGCONT);
 				if(res==-1) {
@@ -1178,21 +1181,21 @@ void ForegroundCommand::execute() {
 				jobID = stoi(args[1]);
 			}
 			catch (out_of_range &e) {
-				std::cerr << "smash error: fg: invalid arguments\n";
+				std::cerr << "smash error: fg: invalid arguments" << endl;
 				break;
 			}
             if (jobID<1){
-                std::cerr << "smash error: fg: job-id " << args[1] << " does not exist\n";
+                std::cerr << "smash error: fg: job-id " << args[1] << " does not exist" << endl;
                 break;
             }
 			JobsList::JobEntry* job = job_list->getJobById(jobID);
 			if (!job) {
-				std::cerr << "smash error: fg: job-id " << jobID << " does not exist\n";
+				std::cerr << "smash error: fg: job-id " << jobID << " does not exist" << endl;
 				break;
 			}
 			jobPID = job->GetCommand()->GetPID();
             smash.ChangeCurrCmd(job->GetCommand());
-			std::cout << job->GetCommand()->GetCmdLine() << " : " << jobPID << "\n";
+			std::cout << job->GetCommand()->GetCmdLine() << " : " << jobPID << endl;
 			res=kill(jobPID, SIGCONT);
 			if(res==-1) {
 				perror("smash error: kill failed");
@@ -1209,7 +1212,7 @@ void ForegroundCommand::execute() {
 			break;
 		}
 		default:
-			std::cerr << "smash error: fg: invalid arguments\n";
+			std::cerr << "smash error: fg: invalid arguments" << endl;
 			break;
 
 	}
@@ -1233,19 +1236,19 @@ void BackgroundCommand::execute() {
         case 1: {
             unsigned long list_size = job_list->ListSize();
             if (list_size == 0) {
-                std::cerr << "smash error: bg: there is no stopped jobs to resume\n";
+                std::cerr << "smash error: bg: there is no stopped jobs to resume" << endl;
                 break;
             }
             else {
                 JobsList::JobEntry* last_job = job_list->getLastStoppedJob(&jobID);
 
                 if (last_job == nullptr){
-                    std::cerr << "smash error: bg: there is no stopped jobs to resume\n";
+                    std::cerr << "smash error: bg: there is no stopped jobs to resume" << endl;
                     break;
                 }
 
                 jobPID = last_job->GetCommand()->GetPID();
-                std::cout << last_job->GetCommand()->GetCmdLine() << " : " << jobPID << "\n";
+                std::cout << last_job->GetCommand()->GetCmdLine() << " : " << jobPID << endl;
                 res=kill(jobPID, SIGCONT);
                 if(res==-1) {
                     perror("smash error: kill failed");
@@ -1264,26 +1267,26 @@ void BackgroundCommand::execute() {
                 jobID = stoi(args[1]);
             }
             catch (out_of_range &e) {
-                std::cerr << "smash error: bg: invalid arguments\n";
+                std::cerr << "smash error: bg: invalid arguments" << endl;
                 break;
             }
             if (jobID<1){
-                std::cerr << "smash error: bg: job-id " << args[1] << " does not exist\n";
+                std::cerr << "smash error: bg: job-id " << args[1] << " does not exist" << endl;
                 break;
             }
             JobsList::JobEntry* job = job_list->getJobById(jobID);
             if (!job) {
-                std::cerr << "smash error: bg: job-id " << jobID << " does not exist\n";
+                std::cerr << "smash error: bg: job-id " << jobID << " does not exist" << endl;
                 break;
             }
             jobPID = job->GetCommand()->GetPID();
 
             if(!(job->isStopped())){
-                std::cerr << "smash error: bg: job-id " << jobID << " is already running in the background\n";
+                std::cerr << "smash error: bg: job-id " << jobID << " is already running in the background" << endl;
                 break;
             }
 
-            std::cout << job->GetCommand()->GetCmdLine() << " : " << jobPID << "\n";
+            std::cout << job->GetCommand()->GetCmdLine() << " : " << jobPID << endl;
             res=kill(jobPID, SIGCONT);
             if(res==-1) {
                 perror("smash error: kill failed");
@@ -1297,7 +1300,7 @@ void BackgroundCommand::execute() {
             break;
         }
         default:
-            std::cerr << "smash error: bg: invalid arguments\n";
+            std::cerr << "smash error: bg: invalid arguments" << endl;
             break;
 
     }
@@ -1513,7 +1516,7 @@ void JobsList::printJobsList(){
 		if((*iter)->isStopped()){
 			std::cout << " (stopped)";
 		}
-		std::cout<< "\n";
+		std::cout<< endl;
 	}
 }
 
@@ -1533,10 +1536,10 @@ void JobsList::killAllJobs(){
 void JobsList::PrintForQuit(){
 	pid_t pid;
 	unsigned long size=lst.size();
-	std::cout << "smash: sending SIGKILL signal to " << size <<" jobs:\n";
+	std::cout << "smash: sending SIGKILL signal to " << size <<" jobs:" << endl;
 	for (vector<JobEntry*>::iterator iter=lst.begin(); iter!=lst.end(); iter++){
 		pid=(*iter)->GetCommand()->GetPID();
-		std::cout << pid << ": " << (*iter)->GetCommand()->GetCmdLine() << "\n";
+		std::cout << pid << ": " << (*iter)->GetCommand()->GetCmdLine() << endl;
 	}
 
 }
@@ -1788,14 +1791,14 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 	    try{
 	        stoi(arg_list[1]);
 	        if(num_of_args<3 || stoi(arg_list[1])<=0){
-	            std::cerr << "smash error: timout: invalid arguments\n";
+	            std::cerr << "smash error: timout: invalid arguments" << endl;
                 cmd = nullptr;
                 FreeCmdArray(arg_list,num_of_args);
                 return cmd;
 	        }
 	    }
 	    catch(invalid_argument &e){
-            std::cerr << "smash error: timout: invalid arguments\n";
+            std::cerr << "smash error: timout: invalid arguments" << endl;
 	        cmd = nullptr;
 	        FreeCmdArray(arg_list,num_of_args);
 	        return cmd;
@@ -1808,7 +1811,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 	}
 	else{
 	    //external command will include the case that there is no command to execute
-		cmd=new ExternalCommand(cmd_line, job_list);
+		cmd=new ExternalCommand(new_cmd_line, job_list);
 	}
 
 	if(res==OVERRIDE || res==APPEND){
