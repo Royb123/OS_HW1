@@ -606,6 +606,14 @@ void RedirectionCommand::execute() {
     if(cmd->GetIsExternal() && GetBackground()){
         cmd->ChangeBackground();
     }
+    int file = open(file_name.c_str(),O_RDONLY);
+    if (file==-1){
+        perror("smash error: open failed");
+        return;
+    }
+    else{
+        close(file);
+    }
     cmd->execute();
     cout.rdbuf(cout_buffer);
     if(cmd->GetIsQuit()){
