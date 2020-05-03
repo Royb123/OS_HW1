@@ -114,7 +114,6 @@ char* CopyCmd(const char * cmd_line){
     char * new_cmd_line=new char[size+1];
 
     for (unsigned long i = 0; i < size;i++) {
-    	char p=cmd_line[i];
     	new_cmd_line[i]=cmd_line[i];
     }
     new_cmd_line[size]=0;
@@ -251,7 +250,6 @@ ExternalCommand::ExternalCommand(const char* cmd_line, JobsList* jobs):Command(c
 	int num_of_args;
 	char* arg_list[COMMAND_MAX_ARGS + 1];
 	num_of_args = _parseCommandLine(GetCmdLine(), arg_list);
-	size_t last_arg_size = strlen(arg_list[num_of_args-1]);
 	if(_isBackgroundComamnd(cmd_line)){
 	    ChangeBackground();
 	}
@@ -574,7 +572,6 @@ void RedirectionCommand::execute() {
     string cmd_s = string(GetCmdLine());
     string file_name;
     SmallShell &smash = SmallShell::getInstance();
-    JobsList *jobs = smash.GetJobList();
     unsigned long ind = 0;
     if (type == APPEND) {
         ind = cmd_s.find(">>");
@@ -595,7 +592,6 @@ void RedirectionCommand::execute() {
         file_name=file_name.substr(0,len);
     }
     if (cmd->GetIsExternal()|| cmd->GetIsCp()) {
-        SmallShell &smash = SmallShell::getInstance();
         JobsList *jobs = smash.GetJobList();
         pid_t pid = fork();
         if (pid == 0) {
@@ -954,7 +950,7 @@ void TimeoutCommand::execute(){
     string time=arg_list[1];
     unsigned int duration=(unsigned int)stoi(time);
     if(!cmd->GetIsExternal()){
-        TimeoutList::TimeoutEntry *entry = times->addTimedJob(this, duration);
+        times->addTimedJob(this, duration);
         cmd->execute();
     }
     else{
@@ -1275,7 +1271,7 @@ BackgroundCommand::BackgroundCommand(const char* cmd_line, JobsList* jobs) :Buil
 }
 
 void BackgroundCommand::execute() {
-    int num_of_args,status;
+    int num_of_args;
     int jobID;
     pid_t jobPID;
     int res=0;
@@ -1584,7 +1580,6 @@ void JobsList::ClearJobsFromList(){
 	lst.clear();
 }
 void JobsList::killAllJobs(){
-	int res;
 	int jobID;//TODO: use to check return value of kill?
 	//TODO: remove finished jobs?
 	for (vector<JobEntry*>::iterator iter=lst.begin(); iter!=lst.end();){
