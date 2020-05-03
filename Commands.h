@@ -27,6 +27,7 @@ protected:
     bool is_pipe;
     bool is_external;
     bool is_quit;
+    bool is_cp;
 public:
     Command();
     explicit Command(const char* cmd_line);
@@ -42,6 +43,8 @@ public:
     const pid_t GetPID(){return pid;}
     bool GetIsPipe(){return is_pipe;};
     bool GetIsExternal(){return is_external;};
+    bool GetIsCp(){return is_cp;};
+    void PrepForPipeOrTime();
     bool GetIsQuit(){return is_quit;};
     bool GetBackground(){return background;};
     void ChangePID(pid_t new_pid){pid=new_pid;};
@@ -121,7 +124,6 @@ class ExternalCommand : public Command {
 public:
     ExternalCommand(const char* cmd_line, JobsList* jobs);
     virtual ~ExternalCommand();
-    void PrepForPipeOrTime();
     void execute() override;
 
 };

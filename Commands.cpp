@@ -219,6 +219,7 @@ Command::Command():cmd_line(""){
 	is_external=false;
 	jobID=-1;
 	is_quit=false;
+	is_cp=false;
 
 };
 Command::Command(const char* cmd_line) {
@@ -231,12 +232,16 @@ Command::Command(const char* cmd_line) {
     is_external=false;
     jobID=-1;
     is_quit=false;
+    is_cp=false;
 }
 
 Command::~Command(){
 	delete cmd_str;
 }
 
+void Command::PrepForPipeOrTime(){
+    is_pipe=true;
+};
 /*========================================================================*/
 /*===========================External Commands============================*/
 /*========================================================================*/
@@ -260,9 +265,6 @@ ExternalCommand::~ExternalCommand() {
 		delete cmd_without_bck;
 	}
 }
-void ExternalCommand::PrepForPipeOrTime(){
-    is_pipe=true;
-};
 void ExternalCommand::execute(){
     int num_of_args;
     char* arg_list[COMMAND_MAX_ARGS + 1];
@@ -450,14 +452,6 @@ void PipeCommand::execute() {
         //First child process
 
         setpgrp();
-        /*
-        int pid_pipe_arr[2];
-        int result = pipe(pid_pipe_arr);
-        if (result == -1) {
-            perror("smash error: pipe failed");
-            exit(-1);
-        }
-         */
         int stdin_copy = 0;
         int stdout_copy = 1;
         int stderr_copy = 2;
@@ -499,9 +493,8 @@ void PipeCommand::execute() {
                 perror("smash error: close failed");
                 exit(-1);
             }
-            if(cmd2->GetIsExternal()){
-                ExternalCommand* ex_cmd=(ExternalCommand*)cmd2;
-                ex_cmd->PrepForPipeOrTime();
+            if(cmd2->GetIsExternal() || cmd2->GetIsCp()){
+                cmd2->PrepForPipeOrTime();
             }
             cmd2->execute();
             exit(0);
@@ -519,9 +512,8 @@ void PipeCommand::execute() {
                 perror("smash error: close failed");
                 exit(-1);
             }
-            if(cmd1->GetIsExternal()){
-                ExternalCommand* ex_cmd=(ExternalCommand*)cmd1;
-                ex_cmd->PrepForPipeOrTime();
+            if(cmd1->GetIsExternal()|| cmd1->GetIsCp()){
+                cmd1->PrepForPipeOrTime();
             }
             cmd1->execute();
             exit(0);
@@ -602,7 +594,7 @@ void RedirectionCommand::execute() {
     if(file_name.back()=='&'){
         file_name=file_name.substr(0,len);
     }
-    if (cmd->GetIsExternal()) {
+    if (cmd->GetIsExternal()|| cmd->GetIsCp()) {
         SmallShell &smash = SmallShell::getInstance();
         JobsList *jobs = smash.GetJobList();
         pid_t pid = fork();
@@ -622,8 +614,7 @@ void RedirectionCommand::execute() {
                 perror("smash error: open failed");
                 exit(0);
             } else {
-                ExternalCommand* ex_cmd=(ExternalCommand*)cmd;
-                ex_cmd->PrepForPipeOrTime();
+                cmd->PrepForPipeOrTime();
                 cmd->execute();
                 close(file);
                 dup2(stdout_copy, 1);
@@ -678,6 +669,7 @@ CopyCommand::CopyCommand(const char* cmd_line, JobsList* jobs): Command(cmd_line
     if (_isBackgroundComamnd(cmd_line)){
         this->ChangeBackground();
     }
+    is_cp=true;
 
 }
 
@@ -843,8 +835,9 @@ void CopyCommand::execute(){
         return;
     }
     else { //copy parent
-
-        setpgrp();
+        if(!is_pipe){
+            setpgrp();
+        }
 
         int* file_to_read = new int;
         int* file_to_write = new int;
@@ -1859,14 +1852,14 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 	    try{
 	        stoi(arg_list[1]);
 	        if(num_of_args<3 || stoi(arg_list[1])<=0){
-	            std::cerr << "smash error: timout: invalid arguments" << endl;
+	            std::cerr << "smash error: timeout: invalid arguments" << endl;
                 cmd = nullptr;
                 FreeCmdArray(arg_list,num_of_args);
                 return cmd;
 	        }
 	    }
 	    catch(exception &e){
-            std::cerr << "smash error: timout: invalid arguments" << endl;
+            std::cerr << "smash error: timeout: invalid arguments" << endl;
 	        cmd = nullptr;
 	        FreeCmdArray(arg_list,num_of_args);
 	        return cmd;
