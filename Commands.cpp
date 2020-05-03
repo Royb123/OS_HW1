@@ -829,7 +829,6 @@ void CopyCommand::execute(){
             waitpid(pid,&status,WUNTRACED);
             if(WIFSTOPPED(status)){
                 ChangeBackground();
-                jobs->addJob(this,true);
             }
         }
         return;
