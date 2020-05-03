@@ -579,52 +579,97 @@ RedirectionCommand::~RedirectionCommand(){
     delete cmd;
 }
 void RedirectionCommand::execute() {
-    string cmd_s=string(GetCmdLine());
+    string cmd_s = string(GetCmdLine());
     string file_name;
-    unsigned long ind=0;
-    if(type==APPEND){
-        ind=cmd_s.find(">>");
-        file_name=cmd_s.substr(ind+2,string::npos);
+    SmallShell &smash = SmallShell::getInstance();
+    JobsList *jobs = smash.GetJobList();
+    unsigned long ind = 0;
+    if (type == APPEND) {
+        ind = cmd_s.find(">>");
+        file_name = cmd_s.substr(ind + 2, string::npos);
 
-    }
-    else{
-        ind=cmd_s.find('>');
-        file_name=cmd_s.substr(ind+1,string::npos);
+    } else {
+        ind = cmd_s.find('>');
+        file_name = cmd_s.substr(ind + 1, string::npos);
     }
     //separate the file name from the rest of the command
     //TODO: what if we get two file names?
-    unsigned long ind2=file_name.find_first_not_of(' ');
-    unsigned long ind3=file_name.find_last_not_of(' ');
-    file_name=file_name.substr(ind2,ind3+1);
-    int stdout_copy= dup(1); //save stdout
-    close(1);
-    int file;
-    if(type==APPEND){
-        file = open(file_name.c_str(),O_WRONLY|O_CREAT|O_APPEND,000777);
+    unsigned long ind2 = file_name.find_first_not_of(' ');
+    file_name = file_name.substr(ind2, string::npos);
+    unsigned long ind3 = file_name.find_first_of(' ');
+    file_name = file_name.substr(0, ind3);
+    unsigned long len=file_name.length();
+    if(file_name.back()=='&'){
+        file_name=file_name.substr(0,len);
     }
-    else{
-        file = open(file_name.c_str(),O_WRONLY|O_CREAT|O_TRUNC,000777);
-    }
-    if (file==-1){
-        dup2(stdout_copy, 1);
-        close(stdout_copy);
-        perror("smash error: open failed");
-        return;
-    }
-    else{
-        if(cmd->GetIsExternal() && GetBackground()){
-            cmd->ChangeBackground();
+    if (cmd->GetIsExternal()) {
+        SmallShell &smash = SmallShell::getInstance();
+        JobsList *jobs = smash.GetJobList();
+        pid_t pid = fork();
+        if (pid == 0) {
+            setpgrp();
+            int stdout_copy = dup(1); //save stdout
+            close(1);
+            int file;
+            if (type == APPEND) {
+                file = open(file_name.c_str(), O_WRONLY | O_CREAT | O_APPEND, 000666);
+            } else {
+                file = open(file_name.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 000666);
+            }
+            if (file == -1) {
+                dup2(stdout_copy, 1);
+                close(stdout_copy);
+                perror("smash error: open failed");
+                exit(0);
+            } else {
+                ExternalCommand* ex_cmd=(ExternalCommand*)cmd;
+                ex_cmd->PrepForPipeOrTime();
+                cmd->execute();
+                close(file);
+                dup2(stdout_copy, 1);
+                close(stdout_copy);
+                exit(0);
+            }
+        } else {
+            //Shell process
+            ChangePID(pid);
+            if (GetBackground()) {
+                jobs->addJob(this, false);
+                return;
+            }
+            int status1;
+            waitpid(pid, &status1, WUNTRACED);
+            if (WIFSTOPPED(status1)) {
+                ChangeBackground();
+            }
         }
-        cmd->execute();
-        close(file);
-        dup2(stdout_copy, 1);
-        close(stdout_copy);
-        if(cmd->GetIsQuit()){
-            exit(0);
-        }
-    }
 
+    } else {
+        int stdout_copy = dup(1); //save stdout
+        close(1);
+        int file;
+        if (type == APPEND) {
+            file = open(file_name.c_str(), O_WRONLY | O_CREAT | O_APPEND, 000666);
+        } else {
+            file = open(file_name.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 000666);
+        }
+        if (file == -1) {
+            dup2(stdout_copy, 1);
+            close(stdout_copy);
+            perror("smash error: open failed");
+            return;
+        } else {
+            cmd->execute();
+            close(file);
+            dup2(stdout_copy, 1);
+            close(stdout_copy);
+            if (cmd->GetIsQuit()) {
+                exit(0);
+            }
+        }
+    }
 }
+
 
 
 /*-------------------------Command Copy----------------------------------*/
