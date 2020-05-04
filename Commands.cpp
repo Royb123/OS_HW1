@@ -283,7 +283,7 @@ void ExternalCommand::execute(){
         perror("smash error: fork failed");
     }
     if (pid == 0) { //child
-        if(!is_pipe || !is_timeout){
+        if(!is_pipe && !is_timeout){
             setpgrp();
         }
         int res;
@@ -852,7 +852,7 @@ void CopyCommand::execute(){
         return;
     }
     else { //copy parent
-        if(!is_pipe|| !is_timeout){
+        if(!is_pipe && !is_timeout){
             setpgrp();
         }
 
@@ -1189,17 +1189,24 @@ void KillCommand::execute() {
         return;
     }
 
-    if (num_of_args != 3 || arg_list[1][0] != '-'||(31<sig || sig<0)) { //checking input
-        std::cerr << "smash error: kill: invalid arguments" << endl;
-        FreeCmdArray(arg_list,num_of_args);
-        return;
-    }
     //checking if jobID is valid
-
     JobsList::JobEntry* temp = this->job_list->getJobById(jobID);
     if (temp == nullptr) {
         std::cerr << "smash error: kill: job-id " << arg_list[2] << " does not exist" << endl;
     }
+    if ((31<sig || sig<0)){
+        std::cerr << "smash error: kill failed: invalid argument" << endl;
+        FreeCmdArray(arg_list,num_of_args);
+        return;
+    }
+
+    if (arg_list[1][0] != '-') { //checking input
+        std::cerr << "smash error: kill: invalid arguments" << endl;
+        FreeCmdArray(arg_list,num_of_args);
+        return;
+    }
+
+
     else {
         //everything is OK, execute signal
         res = job_list->ExecuteSignal(jobID,sig);

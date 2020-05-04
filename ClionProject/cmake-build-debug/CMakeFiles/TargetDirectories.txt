@@ -1,0 +1,3 @@
+/cygdrive/c/DATA/Operating Systems 234123/HW1/ClionProject/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/cygdrive/c/DATA/Operating Systems 234123/HW1/ClionProject/cmake-build-debug/CMakeFiles/Smash.dir
+/cygdrive/c/DATA/Operating Systems 234123/HW1/ClionProject/cmake-build-debug/CMakeFiles/edit_cache.dir

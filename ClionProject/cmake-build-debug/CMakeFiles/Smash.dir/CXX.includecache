@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/cygdrive/c/DATA/Operating Systems 234123/HW1/ClionProject/Commands.cpp
+unistd.h
+-
+string.h
+-
+iostream
+-
+vector
+-
+sstream
+-
+sys/wait.h
+-
+iomanip
+-
+fstream
+-
+Commands.h
+/cygdrive/c/DATA/Operating Systems 234123/HW1/ClionProject/Commands.h
+
+/cygdrive/c/DATA/Operating Systems 234123/HW1/ClionProject/Commands.h
+unistd.h
+-
+vector
+-
+string
+-
+fcntl.h
+-
+
