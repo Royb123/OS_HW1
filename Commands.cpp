@@ -1010,20 +1010,6 @@ void TimeoutCommand::execute(){
             }
 
         }
-        bool real_background=cmd->GetBackground();
-        if(!cmd->GetBackground()){
-            cmd->ChangeBackground();
-        }
-        cmd->execute();
-        TimeoutList::TimeoutEntry *entry = times->addTimedJob(this, duration);
-        ChangePID(cmd->GetPID());
-        if(!real_background){
-            waitpid(GetPID(),nullptr,WUNTRACED);
-        }
-        if(real_background) {
-            JobsList::JobEntry *new_job = jobs->addJob(this, false);
-            entry->ChangeJobID(new_job->GetJobID());
-        }
     }
     FreeCmdArray(arg_list,num_of_args);
 }

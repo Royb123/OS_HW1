@@ -121,7 +121,7 @@ void alarmHandler(int sig_num){
         }
         else{ //External, running in foreground
                 res=waitpid(pid1,&status,WNOHANG|WUNTRACED);
-                if(res==0){
+                if(res==0){ //Process is still alive
                     res1=kill(pid1,SIGKILL);
                     if(res1==-1){
                         perror("smash error: kill failed");
