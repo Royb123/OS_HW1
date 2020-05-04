@@ -93,18 +93,45 @@ void alarmHandler(int sig_num){
     jobs->removeFinishedJobs();
     jobid=first->GetCommand()->GetJobID();
     JobsList::JobEntry* entry=jobs->getJobById(jobid);
-    if((!entry && first->GetCommand()->GetBackground())||!first->GetCommand()->GetIsExternal()){
+    pid1=first->GetCommand()->GetPID();
+    int status;
+    if(pid1==smash.GetPID()){
         times->removeTimedJob();
         return;
     }
-    pid1=first->GetCommand()->GetPID();
-    int status;
-    waitpid(pid1,&status,WNOHANG|WUNTRACED);
-    if(!WIFSIGNALED(status)){
-        res1=kill(pid1,SIGKILL);
-        if(res1==-1){
-            perror("smash error: kill failed");
-            return;
+    else{
+        int res;
+        if(first->GetCommand()->GetBackground()) { //External, running in background
+            if (!entry) {
+                times->removeTimedJob();
+                return;
+            }
+            res=waitpid(pid1, &status, WNOHANG);
+            if(res==0){
+                res1 = kill(pid1, SIGKILL);
+                if (res1 == -1) {
+                    perror("smash error: kill failed");
+                    return;
+                }
+            }
+            else {
+                times->removeTimedJob();
+                return;
+            }
+        }
+        else{ //External, running in foreground
+                res=waitpid(pid1,&status,WNOHANG|WUNTRACED);
+                if(res==0){
+                    res1=kill(pid1,SIGKILL);
+                    if(res1==-1){
+                        perror("smash error: kill failed");
+                        return;
+                    }
+                }
+                else{
+                        times->removeTimedJob();
+                        return;
+                    }
         }
     }
     std::cout << first->GetCommand()->GetCmdLine() << " timed out!" << endl;
@@ -113,4 +140,5 @@ void alarmHandler(int sig_num){
     }
     times->removeTimedJob();
 }
+
 

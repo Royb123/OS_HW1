@@ -28,6 +28,7 @@ protected:
     bool is_external;
     bool is_quit;
     bool is_cp;
+    bool is_timeout;
 public:
     Command();
     explicit Command(const char* cmd_line);
@@ -44,6 +45,8 @@ public:
     bool GetIsPipe(){return is_pipe;};
     bool GetIsExternal(){return is_external;};
     bool GetIsCp(){return is_cp;};
+    bool GetIsTimeout(){return is_timeout;};
+    bool SetIsTimeout(bool value){this->is_timeout=value;};
     void PrepForPipeOrTime();
     bool GetIsQuit(){return is_quit;};
     bool GetBackground(){return background;};

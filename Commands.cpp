@@ -220,6 +220,7 @@ Command::Command():cmd_line(""){
     jobID=-1;
     is_quit=false;
     is_cp=false;
+    is_timeout=false;
 
 };
 Command::Command(const char* cmd_line) {
@@ -233,6 +234,7 @@ Command::Command(const char* cmd_line) {
     jobID=-1;
     is_quit=false;
     is_cp=false;
+    is_timeout=false;
 }
 
 Command::~Command(){
@@ -281,7 +283,7 @@ void ExternalCommand::execute(){
         perror("smash error: fork failed");
     }
     if (pid == 0) { //child
-        if(!is_pipe){
+        if(!is_pipe || !is_timeout){
             setpgrp();
         }
         int res;
@@ -304,16 +306,17 @@ void ExternalCommand::execute(){
     }
     else {//parent - shell
         ChangePID(pid); //of class external command
-        if (GetBackground()){
-            jobs->addJob(this,false);
+        if (GetBackground()) {
+            if (!is_timeout) {
+                jobs->addJob(this, false);
+            }
             return;
         }
         int status;
         if(is_pipe){
-            if(waitpid(pid,&status,0));
+            waitpid(pid,&status,0);
         }
         else{
-            if(waitpid(pid,&status,0));
             waitpid(pid,&status,WUNTRACED);
             if(WIFSTOPPED(status)){
                 ChangeBackground();
@@ -828,8 +831,10 @@ void CopyCommand::execute(){
     }
     if (pid>0){ //Shell
         ChangePID(pid);
-        if(_isBackgroundComamnd(GetCmdLine())){
-            jobs->addJob(this);
+        if(_isBackgroundComamnd(GetCmdLine())) {
+            if (!is_timeout) {
+                jobs->addJob(this);
+            }
         }
         else{
             int status;
@@ -847,7 +852,7 @@ void CopyCommand::execute(){
         return;
     }
     else { //copy parent
-        if(!is_pipe){
+        if(!is_pipe|| !is_timeout){
             setpgrp();
         }
 
@@ -870,7 +875,7 @@ void CopyCommand::execute(){
 
         //----------------------------------open writing file-------------------------------//
 
-        *file_to_write = open(arg_list[2], O_RDWR | O_CREAT | O_TRUNC, 0600);
+        *file_to_write = open(arg_list[2], O_RDWR | O_CREAT | O_TRUNC, 0600); //TODO: 0666?
         if (*file_to_write == -1) { //didn't open correctly
             perror("smash error: open failed");
             delete file_to_write;
@@ -952,18 +957,23 @@ TimeoutCommand::TimeoutCommand(const char* cmd_line, Command* cmd, JobsList* job
         Command(cmd_line),cmd(cmd){
     jobs=jobslst;
     times=t_list;
+    is_timeout=true;
 }
 TimeoutCommand::~TimeoutCommand(){
     delete cmd;
 }
+Command* TimeoutCommand::GetInternalCommand(){
+    return cmd;
+
+};
+
 void TimeoutCommand::execute(){
     int num_of_args;
     char* arg_list[COMMAND_MAX_ARGS+1];
     num_of_args=_parseCommandLine(GetCmdLine(),arg_list);
-    if(_isBackgroundComamnd(GetCmdLine())){
+    if(cmd->GetBackground()){
         ChangeBackground();
     }
-
     string time=arg_list[1];
     unsigned int duration=(unsigned int)stoi(time);
     if(!cmd->GetIsExternal() && !cmd->GetIsCp()){
@@ -971,14 +981,49 @@ void TimeoutCommand::execute(){
         cmd->execute();
     }
     else{
-        TimeoutList::TimeoutEntry *entry = times->addTimedJob(this, duration);
+        pid_t pid1=fork();
+        if(pid1==-1){
+            FreeCmdArray(arg_list,num_of_args);
+            perror("smash error: fork failed");
+            return;
+        }
+        if(pid1==0){ //Child Process
+            setpgrp();
+            if(cmd->GetBackground()){
+                cmd->ChangeBackground();
+            }
+            cmd->execute();
+            exit(0);
+        }
+        else{ //Shell
+            ChangePID(pid1);
+            TimeoutList::TimeoutEntry *entry = times->addTimedJob(this, duration);
+            if(GetBackground()){
+                JobsList::JobEntry *new_job = jobs->addJob(this, false);
+                entry->ChangeJobID(new_job->GetJobID());
+                return;
+            }
+            int status;
+            waitpid(pid1,&status,WUNTRACED);
+            if(WIFSTOPPED(status)){
+                ChangeBackground();
+            }
+
+        }
+        bool real_background=cmd->GetBackground();
+        if(!cmd->GetBackground()){
+            cmd->ChangeBackground();
+        }
         cmd->execute();
-        if (GetBackground()) {
-            ChangePID(cmd->GetPID());
+        TimeoutList::TimeoutEntry *entry = times->addTimedJob(this, duration);
+        ChangePID(cmd->GetPID());
+        if(!real_background){
+            waitpid(GetPID(),nullptr,WUNTRACED);
+        }
+        if(real_background) {
             JobsList::JobEntry *new_job = jobs->addJob(this, false);
             entry->ChangeJobID(new_job->GetJobID());
         }
-
     }
     FreeCmdArray(arg_list,num_of_args);
 }
@@ -1740,6 +1785,7 @@ TimeoutList::TimeoutEntry* TimeoutList::addTimedJob(TimeoutCommand* cmd, int dur
 }
 void TimeoutList::removeTimedJob(){
     vector<TimeoutEntry*>::iterator it=timeout_list.begin();
+    delete (*it)->GetCommand();
     vector<TimeoutEntry*>::iterator next=timeout_list.erase(it);
     if(next==timeout_list.end()){
         return;
@@ -1779,8 +1825,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
             char* arg_list_temp[COMMAND_MAX_ARGS+1];
             int num_of_args1=_parseCommandLine(cmd_without_bck,arg_list_temp);
             _removeBackgroundSign(cmd_without_bck);
-            if(CheckIfBuiltIn(cmd_without_bck)||(string(arg_list_temp[0])=="timeout" &&
-            CheckIfBuiltIn(arg_list_temp[2]))){
+            if(CheckIfBuiltIn(cmd_without_bck)){
                 new_cmd_line=(const char*)cmd_without_bck;
             }
             else{
@@ -1882,7 +1927,18 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 
         }
         string* timeout_cmd_s=ParseTimeoutCmd(new_cmd_line);
-        Command* cmd3=CreateCommand(timeout_cmd_s->c_str());
+        Command* cmd3;
+        if(CheckIfBuiltIn(arg_list[2])&&_isBackgroundComamnd(new_cmd_line)){
+            char* new_cmd_line_for_timeout = CopyCmd(cmd_line);
+            _removeBackgroundSign(new_cmd_line_for_timeout);
+            cmd3=CreateCommand(new_cmd_line_for_timeout);
+        }
+        else{//copy or external
+            cmd3=CreateCommand(timeout_cmd_s->c_str());
+            if (_isBackgroundComamnd(new_cmd_line)){
+                cmd3->SetIsTimeout(true);
+            }
+        }
         cmd=new TimeoutCommand(new_cmd_line,cmd3,job_list,timeout_commands);
         delete timeout_cmd_s;
     }
@@ -1919,7 +1975,7 @@ void SmallShell::executeCommand(const char *cmd_line) {
     job_list->removeFinishedJobs();
     current_cmd->execute();
     current_cmd= nullptr;
-    if(cmd->GetBackground()){
+    if(cmd->GetBackground()|| cmd->GetIsTimeout()){
         return;
     }
     if(cmd->GetIsQuit()){
